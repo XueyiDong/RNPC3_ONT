@@ -20,6 +20,6 @@ module load minimap2/2.4
 for sample in barcode{01..08} 
 do minimap2 -ax splice -k14 --junc-bed  $bed $genome $fq/$sample\_pass.fq.gz | samtools view -b | samtools sort > $sample.pass.bam
 samtools index $sample.pass.bam $sample.pass.bai
-do minimap2 -ax splice -k14 --junc-bed  $bed $genome $fq/$sample\_fail.fq.gz | samtools view -b | samtools sort > $sample.fail.bam
+minimap2 -ax splice -k14 --junc-bed  $bed $genome $fq/$sample\_fail.fq.gz | samtools view -b | samtools sort > $sample.fail.bam
 samtools index $sample.fail.bam $sample.fail.bai
 done
