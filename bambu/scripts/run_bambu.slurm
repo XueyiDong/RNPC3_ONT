@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=150G
 #SBATCH --job-name=ONT_bambu
 #SBATCH --output=ONT_bambu.out
