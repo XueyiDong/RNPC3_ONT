@@ -26,7 +26,7 @@ First, we will check the novel isoforms detected. We will especially focus on wh
 
 ## Prepare and load the data
 
-```{r setup}
+```{r setup2}
 library(edgeR)
 ```
 
@@ -40,24 +40,24 @@ mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 ## minor intron gene analysis
 
 Check which minor intron genes are not available in our dataset.
-```{r}
+```{r checkMiGene}
 mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
 ```
 
 We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
-```{r}
+```{r extrIsoCls}
 tmap.m <- tmap[tmap$class_code == "m", ]
 tmap.n <- tmap[tmap$class_code == "n", ]
 ```
 
 Check how many of "m" and "n" are in the minor intron genes list. We use "ref_gene_id" (annotated gene name) to identify the gene that the isoforms belong to.
-```{r}
+```{r ChkIsoCls}
 table(tmap.m$ref_gene_id %in% mi_gene$Gene.Name)
 table(tmap.n$ref_gene_id %in% mi_gene$Gene.Name)
 ```
 
 Save the lists of "m" and "n" minor intron isoforms.
-```{r}
+```{r SaveIsoCls}
 write.csv(tmap.m[tmap.m$ref_gene_id %in% mi_gene$Gene.Name, ],
           "results/miGenesClassMTx.csv")
 write.csv(tmap.n[tmap.n$ref_gene_id %in% mi_gene$Gene.Name, ],
@@ -71,11 +71,40 @@ The transcript ids are in the "qry_id" column of the lists.
 
 ## Differential expression analysis
 
-We use edgeR quasi-likelihood method for DE analysis.
+When preparing data objects, we combined counts from pass and fail reads for each sample.
 
-```{r}
-
+```{r DGEList}
 x <- DGEList(counts = counts[, c(-1, -2)])
+x$counts[, seq(2, 16, 2)] <-x$counts[, seq(1, 15, 2)] + x$counts[, seq(2, 16, 2)] 
+x$samples$lib.size[seq(2, 16, 2)] <- x$samples$lib.size[seq(1, 15, 2)] + x$samples$lib.size[seq(2, 16, 2)]
+x <- x[, -seq(1, 15, 2)]
+x$samples$group <- rep(c("control", "targeted"), c(4, 4))
+colnames(x) <- gsub("_pass", "", colnames(x))
+x$genes <- tmap[match(rownames(x), tmap$qry_id), 1:6]
+x$genes$isMinorIntron <- x$genes$ref_gene_id %in% mi_gene$Gene.Name
+```
 
+```{r preprocess}
+filt <- filterByExpr(x)
+table(filt)
+x <- x[filt, ]
+x <- calcNormFactors(x)
+plotMDS(x)
+```
+
+On the MDS plot, samples from different groups are separated on dimension 2.
+
+Now, we use edgeR quasi-likelihood method for DE analysis.
+
+```{r DE}
+design <- model.matrix(~x$samples$group)
+x <- estimateDisp(x, design)
+plotBCV(x)
+qlfit <- glmQLFit(x, design)
+plotQLDisp(qlfit)
+res <- glmQLFTest(qlfit)
+topTags(res)
+tt <- topTags(res, n=Inf)
+write.csv(tt, "results/DE_topTags.csv")
 ```
 
