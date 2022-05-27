@@ -1,0 +1,81 @@
+---
+title: "RNPC3 minor intron splicing analysis"
+author: "Xueyi Dong"
+date: '2022-05-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+### Samples information
+A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA.
+barcode01-04: controls (non-targeted), barcode05-08: targeted with rnpc3 siRNA 18.
+
+### Pre-processing
+Mapped to human CHM13v2 reference genome using minimap2 version 2.17.
+Novel isoforms identified and counts generated using bambu version 1.0.3.
+The gtf was then compared to CHM13v2 annotation using gffcompare.
+
+### Aims and plan
+We want to explore human minor introns and splicing events using long read sequencing.
+First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan. Next, we will perform a differential transcript expression analysis and a differential transcript usage analysis.
+
+## Prepare and load the data
+
+```{r setup}
+library(edgeR)
+```
+
+```{r load_data}
+counts <- read.delim("../bambu/out/counts_transcript.txt")
+rownames(counts) <- counts$TXNAME
+tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
+mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
+```
+
+## minor intron gene analysis
+
+Check which minor intron genes are not available in our dataset.
+```{r}
+mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
+```
+
+We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
+```{r}
+tmap.m <- tmap[tmap$class_code == "m", ]
+tmap.n <- tmap[tmap$class_code == "n", ]
+```
+
+Check how many of "m" and "n" are in the minor intron genes list. We use "ref_gene_id" (annotated gene name) to identify the gene that the isoforms belong to.
+```{r}
+table(tmap.m$ref_gene_id %in% mi_gene$Gene.Name)
+table(tmap.n$ref_gene_id %in% mi_gene$Gene.Name)
+```
+
+Save the lists of "m" and "n" minor intron isoforms.
+```{r}
+write.csv(tmap.m[tmap.m$ref_gene_id %in% mi_gene$Gene.Name, ],
+          "results/miGenesClassMTx.csv")
+write.csv(tmap.n[tmap.n$ref_gene_id %in% mi_gene$Gene.Name, ],
+          "results/miGenesClassNTx.csv")
+```
+
+The transcript ids are in the "qry_id" column of the lists.
+
+[class m](results/miGenesClassMTx.csv)
+[class n](results/miGenesClassNTx.csv)
+
+## Differential expression analysis
+
+We use edgeR quasi-likelihood method for DE analysis.
+
+```{r}
+
+x <- DGEList(counts = counts[, c(-1, -2)])
+
+```
+
