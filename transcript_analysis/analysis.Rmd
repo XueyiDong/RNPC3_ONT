@@ -1,33 +1,50 @@
 ---
 title: "RNPC3 minor intron splicing analysis"
 author: "Xueyi Dong"
-date: '2022-05-26'
-output: html_document
+date: '2022-05-31'
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: show
+    
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 
 ## Introduction
 
 ### Samples information
-A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA.
+
+A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA protocol.
+
 barcode01-04: controls (non-targeted), barcode05-08: targeted with rnpc3 siRNA 18.
 
 ### Pre-processing
+
 Mapped to human CHM13v2 reference genome using minimap2 version 2.17.
 Novel isoforms identified and counts generated using bambu version 1.0.3.
-The gtf was then compared to CHM13v2 annotation using gffcompare.
+
+The gtf of identified isoforms was then compared to CHM13v2 annotation using gffcompare.
+
+Quality control report of identified isoforms was generated using SQANTI3 version 5.0, with short read data to calculate splicing junction coverage.
 
 ### Aims and plan
+
 We want to explore human minor introns and splicing events using long read sequencing.
-First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan. Next, we will perform a differential transcript expression analysis and a differential transcript usage analysis.
+
+First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan. 
+
+Next, we will perform a differential transcript expression analysis and a differential transcript usage analysis.
 
 ## Prepare and load the data
 
 ```{r setup2}
 library(edgeR)
+library(limma)
+library(Glimma)
 ```
 
 ```{r load_data}
@@ -43,6 +60,9 @@ Check which minor intron genes are not available in our dataset.
 ```{r checkMiGene}
 mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
 ```
+
+Below are the transcript classifications:
+![*gffcompare* transcript classifications](gffcompare_codes.png)
 
 We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
 ```{r extrIsoCls}
@@ -67,6 +87,7 @@ write.csv(tmap.n[tmap.n$ref_gene_id %in% mi_gene$Gene.Name, ],
 The transcript ids are in the "qry_id" column of the lists.
 
 [class m](results/miGenesClassMTx.csv)
+
 [class n](results/miGenesClassNTx.csv)
 
 ## Differential expression analysis
@@ -89,7 +110,8 @@ filt <- filterByExpr(x)
 table(filt)
 x <- x[filt, ]
 x <- calcNormFactors(x)
-plotMDS(x)
+x$samples
+glimmaMDS(x)
 ```
 
 On the MDS plot, samples from different groups are separated on dimension 2.
@@ -103,8 +125,41 @@ plotBCV(x)
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
+# number of DE transcripts
+summary(decideTestsDGE(res))
+glimmaMA(res, dge=x)
+# top DE transcripts
 topTags(res)
 tt <- topTags(res, n=Inf)
 write.csv(tt, "results/DE_topTags.csv")
+```
+
+[DE results table](results/DE_topTags.csv)
+
+## Differential transcript usage analysis
+
+We use limma diffSplice for DTU analysis.
+
+```{r DTU}
+v <- voom(x, design, plot = TRUE)
+fit <- lmFit(v)
+ds <- diffSplice(fit, geneid = x$genes$qry_gene_id, exonid = x$genes$qry_id)
+# top DTU genes
+topSplice(ds)
+# top DTU transcripts
+topSplice(ds, test = "t")
+ts <- topSplice(ds, test = "simes", number = Inf)
+ts.tx <- topSplice(ds, test = "t", number = Inf)
+write.csv(ts, file = "results/DTU_gene_topSplice.csv")
+write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
+```
+
+[DTU gene-level results table](results/DTU_gene_topSplice.csv)
+
+[DTU transcript-level results table](results/DTU_transcript_topSplice.csv)
+
+## Session information
+```{r sessionInfo}
+sessionInfo()
 ```
 
