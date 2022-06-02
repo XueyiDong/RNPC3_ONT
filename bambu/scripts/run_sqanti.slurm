@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=50G
+#SBATCH --mem=100G
 #SBATCH --job-name=SQANTI3_RNPC3
 #SBATCH --output=sqanti_qc_RNPC3.out
 #SBATCH --mail-user=dong.x@wehi.edu.au
@@ -26,5 +26,6 @@ python ~/Programs/SQANTI3-5.0/sqanti3_qc.py \
 $BAMUB_OUT/extended_annotations.gtf \
 $ANNO_DIR/GCF_009914755.1_T2T-CHM13v2.0_genomic.gtf \
 $ANNO_DIR/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna \
---cpus 16  --short_reads ../scripts/short_read.fofn > sqanti3_qc.out
+--cpus 16 -c ./STAR_mapping > sqanti3_qc.out  
+#--short_reads ../scripts/short_read.fofn > sqanti3_qc.out
 

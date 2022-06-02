@@ -1,11 +1,11 @@
 ---
 title: "RNPC3 minor intron splicing analysis"
 author: "Xueyi Dong"
-date: '2022-05-31'
+date: '2022-06-02'
 output:
   html_document:
     toc: true
-    toc_depth: 2
+    toc_depth: 3
     code_folding: show
     
 ---
@@ -18,26 +18,31 @@ knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 
 ### Samples information
 
-A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA protocol.
+A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA protocol on 3 flow cells.
 
 barcode01-04: controls (non-targeted), barcode05-08: targeted with rnpc3 siRNA 18.
 
 ### Pre-processing
 
-Mapped to human CHM13v2 reference genome using minimap2 version 2.17.
-Novel isoforms identified and counts generated using bambu version 1.0.3.
+Basecalling and demultiplexing were done using Guppy version 6.0.6.
+
+Reads were mapped to human CHM13v2 reference genome using minimap2 version 2.17.
+
+Novel isoforms identified and transcript-level counts generated using bambu version 1.0.3.
 
 The gtf of identified isoforms was then compared to CHM13v2 annotation using gffcompare.
 
-Quality control report of identified isoforms was generated using SQANTI3 version 5.0, with short read data to calculate splicing junction coverage.
+(Not finished) Quality control report of identified isoforms was generated using SQANTI3 version 5.0, with short read data to calculate splicing junction coverage.
 
 ### Aims and plan
 
 We want to explore human minor introns and splicing events using long read sequencing.
 
-First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan. 
+First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan and Stephen. 
 
-Next, we will perform a differential transcript expression analysis and a differential transcript usage analysis.
+Next, we will perform differential transcript expression (DTE) analysis and differential transcript usage (DTU) analysis to see what is changed between targeted and untargetet samples. Then, we will perform gene set testing to further explore the DTE and DTU results.
+
+Finally, we will visualize the isoform structure and genomic coverage of interesting genes.
 
 ## Prepare and load the data
 
@@ -61,7 +66,7 @@ Check which minor intron genes are not available in our dataset.
 mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
 ```
 
-Below are the transcript classifications:
+Below is the explanation of the *gffcompare* transcript classifications:
 ![*gffcompare* transcript classifications](gffcompare_codes.png)
 
 We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
@@ -92,7 +97,9 @@ The transcript ids are in the "qry_id" column of the lists.
 
 ## Differential expression analysis
 
-When preparing data objects, we combined counts from pass and fail reads for each sample.
+### Preparing data object
+
+When preparing data objects, we combined counts from quality pass and fail reads for each sample.
 
 ```{r DGEList}
 x <- DGEList(counts = counts[, c(-1, -2)])
@@ -104,7 +111,9 @@ colnames(x) <- gsub("_pass", "", colnames(x))
 x$genes <- tmap[match(rownames(x), tmap$qry_id), 1:6]
 x$genes$isMinorIntron <- x$genes$ref_gene_id %in% mi_gene$Gene.Name
 ```
+### Filtering, normalization and MDS plot
 
+It may take a while to load the interactive MDS plot.
 ```{r preprocess}
 filt <- filterByExpr(x)
 table(filt)
@@ -116,7 +125,7 @@ glimmaMDS(x)
 
 On the MDS plot, samples from different groups are separated on dimension 2.
 
-Now, we use edgeR quasi-likelihood method for DE analysis.
+### DE analysis using *edgeR* quasi-likelihood method
 
 ```{r DE}
 design <- model.matrix(~x$samples$group)
@@ -127,7 +136,6 @@ plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
 # number of DE transcripts
 summary(decideTestsDGE(res))
-glimmaMA(res, dge=x)
 # top DE transcripts
 topTags(res)
 tt <- topTags(res, n=Inf)
@@ -136,9 +144,59 @@ write.csv(tt, "results/DE_topTags.csv")
 
 [DE results table](results/DE_topTags.csv)
 
+It may take a while to load the following interactive mean-difference plot. 
+
+You can click on each dot on the top left plot or each row in the bottom table to check each individual transcript.
+You can also search for gene or transcript names in the table.
+```{r glimmaMA}
+glimmaMA(res, dge = x, main = "Targeted vs Control")
+```
+
+### Gene set testing
+
+We used the function `fry` from *limma* to test whether specific sets of transcripts are differentially expressed, and barcode plots were made to visualize the results.
+
+The `PValue` column gives the two-sided p-value for testing whether the set is DE as a whole, either up or down. The `PValue.Mixed` column gives a p-value for testing whether genes in the set tend to be DE, without regard to direction. 
+
+#### Minor intron genes from the list provided by Joan.
+
+```{r geneSetMI}
+lcpm <- cpm(x, log = TRUE)
+fry(lcpm, x$genes$isMinorIntron,design)
+barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
+            main = "Minor intron genes, targeted vs control")
+```
+Transcripts from minor intron splicing genes are up regulated.
+
+#### Transcript classifications
+
+Class "m" transripts
+```{r geneSetM}
+fry(lcpm, x$genes$class_code=="m", design)
+barcodeplot(res$table$logFC, index = x$genes$class_code=="m",
+            main = "Transcript class m, targeted vs control")
+```
+
+
+Class "n" transcipts
+```{r geneSetN}
+fry(lcpm, x$genes$class_code=="n", design)
+barcodeplot(res$table$logFC, index = x$genes$class_code=="n",
+            main = "Transcript class n, targeted vs control")
+```
+
+Class "j" transcripts
+```{r geneSetJ}
+fry(lcpm, x$genes$class_code=="j", design)
+barcodeplot(res$table$logFC, index = x$genes$class_code=="j",
+            main = "Transcript class n, targeted vs control")
+```
+
+It seems like the expression of transcript classes "m", "n" and "j" are not regulated directionally together.
+
 ## Differential transcript usage analysis
 
-We use limma diffSplice for DTU analysis.
+### DTU analysis using *limma-diffSplice*
 
 ```{r DTU}
 v <- voom(x, design, plot = TRUE)
@@ -150,6 +208,10 @@ topSplice(ds)
 topSplice(ds, test = "t")
 ts <- topSplice(ds, test = "simes", number = Inf)
 ts.tx <- topSplice(ds, test = "t", number = Inf)
+# number of DTU genes
+table(ts$FDR < 0.05)
+# number of DTU transcripts
+table(ts.tx$FDR < 0.05)
 write.csv(ts, file = "results/DTU_gene_topSplice.csv")
 write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
 ```
@@ -157,6 +219,44 @@ write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
 [DTU gene-level results table](results/DTU_gene_topSplice.csv)
 
 [DTU transcript-level results table](results/DTU_transcript_topSplice.csv)
+
+### Gene set testing based on transcript-level DTU results
+
+<!-- In the output, significant "Down" and "Up" p-value means the DE results are negatively or positively correlated with the expression of the set. Significant "UpOrDown" p-value means up or down regulation, but the direction is not specified. "Mixed" is used to test the correlation without regard for direction. -->
+
+#### Minor intron genes
+
+```{r geneSetDTUMI}
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorIntron,
+            main = "Minor intron genes, targeted vs control",
+            xlab = "t-statistics")
+```
+#### Transcript classifications
+
+Class "m" transripts
+```{r geneSetDTUM}
+barcodeplot(ds$t[, 2], index = ds$genes$class_code=="m",
+            main = "Transcript class m, targeted vs control",
+            xlab = "t-statistics")
+```
+
+
+Class "n" transcipts
+```{r geneSetDTUN}
+barcodeplot(ds$t[, 2], index = ds$genes$class_code=="n",
+            main = "Transcript class n, targeted vs control",
+            xlab = "t-statistics")
+```
+
+Class "j" transcripts
+```{r geneSetDTUJ}
+barcodeplot(ds$t[, 2], index = ds$genes$class_code=="j",
+            main = "Transcript class n, targeted vs control",
+            xlab = "t-statistics")
+```
+
+## Visualization of transcripts
+
 
 ## Session information
 ```{r sessionInfo}
