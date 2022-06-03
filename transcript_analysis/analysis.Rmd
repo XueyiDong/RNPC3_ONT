@@ -50,6 +50,8 @@ Finally, we will visualize the isoform structure and genomic coverage of interes
 library(edgeR)
 library(limma)
 library(Glimma)
+library(superintronic)
+suppressPackageStartupMessages(library(plyranges))
 ```
 
 ```{r load_data}
@@ -255,7 +257,18 @@ barcodeplot(ds$t[, 2], index = ds$genes$class_code=="j",
             xlab = "t-statistics")
 ```
 
-## Visualization of transcripts
+## Visualization of transcripts coverage
+
+Due to high computation load, visualization was done in a separate script.
+
+```{r}
+# save DTE gene names
+tt <- as.data.frame(tt)
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "DTEgenesMI.RDS")
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "DTEgenesNotMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "DTUgenesMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "DTUgenesNotMI.RDS")
+```
 
 
 ## Session information
