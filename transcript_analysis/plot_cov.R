@@ -3,7 +3,7 @@ suppressPackageStartupMessages(library(plyranges))
 library(ggplot2)
 
 # prepare annotation----
-# gff <- "../bambu/out/extended_annotations.genes.gtf"
+# gff <- "../bambu/out/extended_annotations.genes.edited.gtf"
 # gr <- read_gff(gff, genome_info = "CHM13v2")
 # parts <- collect_parts(gr)
 # saveRDS(parts, "complete_annotation.rds")
@@ -23,24 +23,47 @@ design <- data.frame(
 cvg <- readRDS("complete_coverage.rds")
 
 # plot for each feature ----
+tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
+mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 plot_cov_genes <- function(genes){
   plot_list = list(genes)
   for (i in genes){
-    features <- parts %>% filter(gene_id == i)
-    cvg_over_features <- cvg %>% 
-      select(-Bam) %>% 
-      join_parts(features)
-    gene_track <- view_segments(unnest_parts(features), 
-                                colour = feature_type)
-    p <- cvg_over_features %>% 
-      mutate(strand = feature_strand) %>% 
-      view_coverage(score = score, 
-                    colour = feature_type, 
-                    facets = vars(siRNA)) + 
-      scale_color_brewer(palette = "Dark2") +
-      guides(colour = FALSE) +
-      labs(title = i)
-    plot_list[[i]] = p / gene_track + patchwork::plot_layout(heights = c(3, 1))
+    if (i %in% parts$gene_id){
+      cat("Making plot for gene", i, ".\n")
+      features <- parts %>% filter(gene_id == i)
+      cvg_over_features <- cvg %>% 
+        select(-Bam) %>% 
+        join_parts(features)
+      if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
+        cat("Gene", i, "strand not unique.\n")
+      } else{
+        gene_track <- view_segments(unnest_parts(features),
+                                    colour = feature_type)
+        # # mark retained introm for mi gene
+        # m <- which(tmap$ref_gene_id[match(i, tmap$qry_gene_id)] == mi_gene$Gene.Name)
+        # if(length(m) > 0){
+        #   cat("Adding minor intron.\n")
+        #   for(j in m){
+        #     coord <- as.numeric(limma::strsplit2(mi_gene[j, "Intron.coordinates"], "-"))
+        #     gene_track <- gene_track +
+        #       geom_segment(aes(x = coord[1], xend=coord[2], y=0.5, yend = 0.5),
+        #                    size = 10, alpha = 0.3)
+        #   }
+        # }
+        p <- cvg_over_features %>% 
+          mutate(strand = feature_strand) %>% 
+          view_coverage(score = score, 
+                        colour = feature_type, 
+                        facets = vars(siRNA)) + 
+          scale_color_brewer(palette = "Dark2") +
+          guides(colour = FALSE) +
+          labs(title = i)
+        plot_list[[i]] = p / gene_track + patchwork::plot_layout(heights = c(3, 1))
+      }
+    } else {
+      cat("Gene", i, "not found.\n")
+    }
+    
   }
   return(plot_list)
 }
@@ -49,10 +72,11 @@ plot_cov_genes <- function(genes){
 for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
   genes <- readRDS(paste0(i, ".RDS"))
   plot_list <- plot_cov_genes(genes)
-  pdf(paste0("cov_", i, ".pdf"))
+  pdf(paste0("plots/cov_", i, ".pdf"))
   for(j in genes){
     print(plot_list[[j]])
   }
   dev.off()
 }
+
 

@@ -26,3 +26,23 @@ write.table(out, "../bambu/out/extended_annotations.genes.gtf",
             sep = "\t",
             quote = FALSE,
             row.names = FALSE, col.names = FALSE)
+
+# remove rows without specific strand information
+out2 <- out[out$V7 != ".", ]
+write.table(out2, "../bambu/out/extended_annotations.genes.edited.gtf",
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE, col.names = FALSE)
+write.table(gtf[gtf$V7 != ".", ], "../bambu/out/extended_annotations.edited.gtf",
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE, col.names = FALSE)
+
+# filter out no strand features using plyranges
+library(plyranges)
+gff <- read_gff("../bambu/out/extended_annotations.genes.gtf")
+out2 <- gff %>% filter(strand %in% c("+", "-"))
+write_gff(out2, "../bambu/out/extended_annotations.genes.edited.gtf")
+# try to collect parts
+library(superintronic)
+parts <- collect_parts(out2)

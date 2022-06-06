@@ -1,7 +1,7 @@
 ---
 title: "RNPC3 minor intron splicing analysis"
 author: "Xueyi Dong"
-date: '2022-06-02'
+date: '2022-06-06'
 output:
   html_document:
     toc: true
@@ -253,7 +253,7 @@ barcodeplot(ds$t[, 2], index = ds$genes$class_code=="n",
 Class "j" transcripts
 ```{r geneSetDTUJ}
 barcodeplot(ds$t[, 2], index = ds$genes$class_code=="j",
-            main = "Transcript class n, targeted vs control",
+            main = "Transcript class j, targeted vs control",
             xlab = "t-statistics")
 ```
 
@@ -261,7 +261,7 @@ barcodeplot(ds$t[, 2], index = ds$genes$class_code=="j",
 
 Due to high computation load, visualization was done in a separate script.
 
-```{r}
+```{r saveGeneName}
 # save DTE gene names
 tt <- as.data.frame(tt)
 saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "DTEgenesMI.RDS")
@@ -269,6 +269,18 @@ saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "DTEgenesNotM
 saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "DTUgenesMI.RDS")
 saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "DTUgenesNotMI.RDS")
 ```
+
+```{r txViz, eval=FALSE}
+source("plot_cov.R")
+```
+
+[DTE minor intron genes](plots/cov_DTEgenesMI.pdf)
+
+[DTE not minor intron genes](plots/cov_DTEgenesNotMI.pdf)
+
+[DTU minor intron genes](plots/cov_DTUgenesMI.pdf)
+
+[DTU not minor intron genes](plots/cov_DTUgenesNotMI.pdf)
 
 
 ## Session information
