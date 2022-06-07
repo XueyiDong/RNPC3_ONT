@@ -101,7 +101,7 @@ for(i in unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_
 }
 dev.off()
 
-# Try Gviz ----
+# Visualize coverage using Gviz ----
 library(Gviz)
 plot_cov_genes2 <- function(gene){
     if (gene %in% parts$gene_id){
@@ -128,11 +128,12 @@ plot_cov_genes2 <- function(gene){
                     data = "score")
         })
         # add highlight for minor intron region
+        ref_gene <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)][1]
         ht <- HighlightTrack(trackList = append(dTrack, aTrack),
-                             range = mi %>% filter(gene_id == gene))
+                             range = mi %>% filter(name == ref_gene))
         plotTracks(list(ht, axisTrack),
                    type="h", groupAnnotation = "group",
-                   main = gene
+                   main = paste0(ref_gene, " (", gene, ")")
                    )
       }
     } else {
@@ -141,5 +142,5 @@ plot_cov_genes2 <- function(gene){
 }
 
 # test
-plot_cov_genes2("CACNA1C_2")
+plot_cov_genes2("UBL5_1")
 plot_cov_genes2("SPCS2_1")
