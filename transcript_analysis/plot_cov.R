@@ -3,8 +3,8 @@ suppressPackageStartupMessages(library(plyranges))
 library(ggplot2)
 
 # prepare annotation----
-# gff <- "../bambu/out/extended_annotations.genes.edited.gtf"
-# gr <- read_gff(gff, genome_info = "CHM13v2")
+gff <- "../bambu/out/extended_annotations.genes.edited.gtf"
+gr <- read_gff(gff, genome_info = "CHM13v2")
 # parts <- collect_parts(gr)
 # saveRDS(parts, "complete_annotation.rds")
 parts <- readRDS("complete_annotation.rds")
@@ -36,6 +36,7 @@ mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 # write_bed(mi, "mi.bed")
 # #intron coord converted using online tool: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 mi <- read_bed("hglft_genome_b5cb_ee5900.bed")
+mi$gene_id <- tmap$qry_gene_id[match(mi$name, tmap$ref_gene_id)]
 
 add_mi <- function(gene_name, gene_track){
   out <- gene_track
@@ -100,3 +101,45 @@ for(i in unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_
 }
 dev.off()
 
+# Try Gviz ----
+library(Gviz)
+plot_cov_genes2 <- function(gene){
+    if (gene %in% parts$gene_id){
+      # cat("Making plot for gene", gene, ".\n")
+      features <- parts %>% filter(gene_id == gene)
+      cvg_over_features <- cvg %>% 
+        select(-Bam) %>% 
+        join_parts(features)
+      if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
+        cat("Gene", gene, "strand not unique.\n")
+      } else{
+        # axis
+        axisTrack <- GenomeAxisTrack()
+        # transcripts annotation
+        anno <- gr %>% filter(gene_id == gene, type=="exon")
+        aTrack <- AnnotationTrack(anno, 
+                                  group = anno$transcript_id,
+                                  name = "Isoforms")
+        # coverage histogram
+        dTrack <- lapply(unique(cvg_over_features$siRNA), function(x){
+          DataTrack(range = cvg_over_features %>% filter(siRNA == x),
+                    options(ucscChromosomeNames=FALSE), 
+                    name = x,
+                    data = "score")
+        })
+        # add highlight for minor intron region
+        ht <- HighlightTrack(trackList = append(dTrack, aTrack),
+                             range = mi %>% filter(gene_id == gene))
+        plotTracks(list(ht, axisTrack),
+                   type="h", groupAnnotation = "group",
+                   main = gene
+                   )
+      }
+    } else {
+      cat("Gene", gene, "not found.\n")
+    }
+}
+
+# test
+plot_cov_genes2("CACNA1C_2")
+plot_cov_genes2("SPCS2_1")
