@@ -40,7 +40,7 @@ add_mi <- function(gene_name, gene_track){
   out <- gene_track
   mi_range <- mi %>% filter(name == gene_name)
   if(length(mi_range) > 0){
-    cat("Adding", length(mi_range),  "minor introns.\n")
+    # cat("Adding", length(mi_range),  "minor introns.\n")
     for(j in 1:length(mi_range)){
       # coord <- as.numeric(limma::strsplit2(mi_gene[j, "Intron.coordinates"], "-"))
       out <- out +
@@ -53,22 +53,22 @@ add_mi <- function(gene_name, gene_track){
 
 
 # plot for each feature ----
-plot_cov_genes <- function(genes){
-  plot_list = list(genes)
-  for (i in genes){
-    if (i %in% parts$gene_id){
-      cat("Making plot for gene", i, ".\n")
-      features <- parts %>% filter(gene_id == i)
+plot_cov_genes <- function(gene){
+  # plot_list = list(genes)
+  # for (i in genes){
+    if (gene %in% parts$gene_id){
+      # cat("Making plot for gene", gene, ".\n")
+      features <- parts %>% filter(gene_id == gene)
       cvg_over_features <- cvg %>% 
         select(-Bam) %>% 
         join_parts(features)
       if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
-        cat("Gene", i, "strand not unique.\n")
+        cat("Gene", gene, "strand not unique.\n")
       } else{
         gene_track <- view_segments(unnest_parts(features),
                                     colour = feature_type)
         # mark retained introm for mi gene
-        gene_name <- tmap$ref_gene_id[match(i, tmap$qry_gene_id)]
+        gene_name <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)]
         gene_track <- add_mi(gene_name, gene_track)
         p <- cvg_over_features %>% 
           mutate(strand = feature_strand) %>% 
@@ -77,25 +77,27 @@ plot_cov_genes <- function(genes){
                         facets = vars(siRNA)) + 
           scale_color_brewer(palette = "Dark2") +
           guides(colour = FALSE) +
-          labs(title = i)
-        plot_list[[i]] = p / gene_track + patchwork::plot_layout(heights = c(3, 1))
+          labs(title = gene)
+        p / gene_track + patchwork::plot_layout(heights = c(3, 1))
       }
     } else {
-      cat("Gene", i, "not found.\n")
+      cat("Gene", gene, "not found.\n")
     }
     
-  }
-  return(plot_list)
+  # }
+  # return(plot_list)
 }
 
 # make plot ---
+genes <- list()
 for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
   cat("Working on", i, ".\n")
-  genes <- readRDS(paste0(i, ".RDS"))
-  plot_list <- plot_cov_genes(genes)
+  genes[[i]] <- readRDS(paste0(i, ".RDS"))
+  # plot_list <- plot_cov_genes(genes)
   pdf(paste0("plots/cov_", i, ".pdf"))
-  for(j in genes){
-    print(plot_list[[j]])
+  for(j in genes[[i]]){
+    # print(plot_list[[j]])
+    print(plot_cov_genes(j))
   }
   dev.off()
 }
