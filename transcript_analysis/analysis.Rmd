@@ -259,7 +259,7 @@ barcodeplot(ds$t[, 2], index = ds$genes$class_code=="j",
 
 ## Visualization of transcripts coverage
 
-Due to high computation load, visualization was done in a separate script.
+Due to high computation load, visualization was done in a separate script. notice that genes without known strand information are not plotted.
 
 ```{r saveGeneName}
 # save DTE gene names

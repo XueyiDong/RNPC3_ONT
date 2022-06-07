@@ -22,9 +22,37 @@ design <- data.frame(
 # saveRDS(cvg, "complete_coverage.rds")
 cvg <- readRDS("complete_coverage.rds")
 
-# plot for each feature ----
+
+# transform intron coord into new version----
+# write minor intron information into bed format
 tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
 mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
+# mi <- GRanges(
+#   seqnames = Rle(paste0("chr", mi_gene$Chromosome)),
+#   ranges = IRanges(as.numeric(limma::strsplit2(mi_gene$Intron.coordinates, "-")[,1]),
+#                    end = as.numeric(limma::strsplit2(mi_gene$Intron.coordinates, "-")[,2]),
+#                    names = mi_gene$Gene.Name)
+# )
+# write_bed(mi, "mi.bed")
+# #intron coord converted using online tool: https://genome.ucsc.edu/cgi-bin/hgLiftOver
+mi <- read_bed("hglft_genome_b5cb_ee5900.bed")
+add_mi <- function(gene_name, gene_track){
+  out <- gene_track
+  mi_range <- mi %>% filter(name == gene_name)
+  if(length(mi_range) > 0){
+    cat("Adding", length(mi_range),  "minor introns.\n")
+    for(j in 1:length(mi_range)){
+      # coord <- as.numeric(limma::strsplit2(mi_gene[j, "Intron.coordinates"], "-"))
+      out <- out +
+        geom_segment(aes(x = start(mi_range)[j], xend=end(mi_range)[j], y=0.5, yend = 0.5),
+                     size = 10, alpha = 0.5)
+    }
+  }
+  return(out)
+}
+
+
+# plot for each feature ----
 plot_cov_genes <- function(genes){
   plot_list = list(genes)
   for (i in genes){
@@ -39,17 +67,9 @@ plot_cov_genes <- function(genes){
       } else{
         gene_track <- view_segments(unnest_parts(features),
                                     colour = feature_type)
-        # # mark retained introm for mi gene
-        # m <- which(tmap$ref_gene_id[match(i, tmap$qry_gene_id)] == mi_gene$Gene.Name)
-        # if(length(m) > 0){
-        #   cat("Adding minor intron.\n")
-        #   for(j in m){
-        #     coord <- as.numeric(limma::strsplit2(mi_gene[j, "Intron.coordinates"], "-"))
-        #     gene_track <- gene_track +
-        #       geom_segment(aes(x = coord[1], xend=coord[2], y=0.5, yend = 0.5),
-        #                    size = 10, alpha = 0.3)
-        #   }
-        # }
+        # mark retained introm for mi gene
+        gene_name <- tmap$ref_gene_id[match(i, tmap$qry_gene_id)]
+        gene_track <- add_mi(gene_name, gene_track)
         p <- cvg_over_features %>% 
           mutate(strand = feature_strand) %>% 
           view_coverage(score = score, 
@@ -70,6 +90,7 @@ plot_cov_genes <- function(genes){
 
 # make plot ---
 for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
+  cat("Working on", i, ".\n")
   genes <- readRDS(paste0(i, ".RDS"))
   plot_list <- plot_cov_genes(genes)
   pdf(paste0("plots/cov_", i, ".pdf"))
