@@ -274,13 +274,15 @@ saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "DTUgenesNotM
 source("plot_cov.R")
 ```
 
-[DTE minor intron genes](plots/cov_DTEgenesMI.pdf)
+[DTE minor intron genes](plots/cov_DTEgenesMI2.pdf)
 
-[DTE not minor intron genes](plots/cov_DTEgenesNotMI.pdf)
+[DTE not minor intron genes](plots/cov_DTEgenesNotMI2.pdf)
 
-[DTU minor intron genes](plots/cov_DTUgenesMI.pdf)
+[DTU minor intron genes](plots/cov_DTUgenesMI2.pdf)
 
-[DTU not minor intron genes](plots/cov_DTUgenesNotMI.pdf)
+[DTU not minor intron genes](plots/cov_DTUgenesNotM2I.pdf)
+
+[Minor intron genes that are not DTE or DTU but containing class m, n or j transcripts](plots/cov_notSigMI_mnj.pdf)
 
 
 ## Session information
