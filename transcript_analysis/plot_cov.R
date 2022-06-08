@@ -118,11 +118,14 @@ plot_cov_genes2 <- function(gene){
         # transcripts annotation
         anno <- gr %>% filter(gene_id == gene, type=="exon")
         aTrack <- AnnotationTrack(anno, 
-                                  group = anno$transcript_id,
+                                  group = anno$transcript_id_status,
+                                  options(ucscChromosomeNames=FALSE),
                                   name = "Isoforms")
         # coverage histogram
-        dTrack <- lapply(unique(cvg_over_features$siRNA), function(x){
-          DataTrack(range = cvg_over_features %>% filter(siRNA == x),
+        # calculate mean coverage score by group
+        data <- cvg_over_features %>% plyranges::group_by(siRNA) %>% disjoin_ranges_directed(score = mean(score))
+        dTrack <- lapply(unique(data$siRNA), function(x){
+          DataTrack(range = data %>% filter(siRNA == x),
                     options(ucscChromosomeNames=FALSE), 
                     name = x,
                     data = "score")
@@ -141,6 +144,48 @@ plot_cov_genes2 <- function(gene){
     }
 }
 
+# add DTE/DTU info and isoform category to annotation ----
+tt <- read.csv("results/DE_topTags.csv")
+ts <- read.csv("results/DTU_transcript_topSplice.csv")
+gr$isDTE <- gr$transcript_id %in% (tt %>% dplyr::filter(FDR < 0.05) %>% dplyr::pull(qry_id))
+gr$isDTU <- gr$transcript_id %in% (ts %>% dplyr::filter(FDR < 0.05) %>% dplyr::pull(qry_id))
+gr$transcript_id_status <- gr$transcript_id
+gr$transcript_id_status[gr$isDTE] <- paste(gr$transcript_id_status[gr$isDTE], "(DTE)")
+gr$transcript_id_status[gr$isDTU] <- paste(gr$transcript_id_status[gr$isDTU], "(DTU)")
+
+gr$class_code <- tmap$class_code[match(gr$transcript_id, tmap$qry_id)]
+gr$transcript_id_status <- paste(gr$transcript_id_status, gr$class_code)
+
+# make plot using gviz ---
+# genes <- list()
+for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
+  cat("Working on", i, ".\n")
+  # genes[[i]] <- readRDS(paste0(i, ".RDS"))
+  pdf(paste0("plots/cov_", i, "2.pdf"))
+  for(j in genes[[i]]){
+    plot_cov_genes2(j)
+  }
+  dev.off()
+}
+
+# plot for non DTE/DTU minor intron genes
+mi_nosig_genes <- unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_id)]))
+mi_nosig_genes <- mi_nosig_genes[!(mi_nosig_genes %in% union(genes$DTEgenesMI, genes$DTUgenesMI))]
+mi_nosig_genes <- mi_nosig_genes[sapply(mi_nosig_genes, function(x){
+  !!sum(c("m", "n", "j") %in% filter(gr, gene_id == x)$class_code)
+}, simplify = TRUE)]
+pdf("plots/cov_notSigMI_mnj.pdf")
+for(i in mi_nosig_genes){
+  plot_cov_genes2(i)
+}
+dev.off()
+
 # test
 plot_cov_genes2("UBL5_1")
-plot_cov_genes2("SPCS2_1")
+plot_cov_genes2("MYCBP_1")
+plot_cov_genes2("KRTCAP2_1")
+pdf("test.pdf")
+for(i in c("UBL5_1", "SPCS2_1")){
+  plot_cov_genes2(i)
+}
+dev.off()
