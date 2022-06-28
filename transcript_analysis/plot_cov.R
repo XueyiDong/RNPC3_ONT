@@ -180,7 +180,7 @@ for(i in mi_nosig_genes){
 }
 dev.off()
 
-# test
+# test----
 plot_cov_genes2("UBL5_1")
 plot_cov_genes2("MYCBP_1")
 plot_cov_genes2("KRTCAP2_1")

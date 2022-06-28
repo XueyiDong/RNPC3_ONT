@@ -71,6 +71,16 @@ mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
 Below is the explanation of the *gffcompare* transcript classifications:
 ![*gffcompare* transcript classifications](gffcompare_codes.png)
 
+```{r qc}
+# check how many expressed transcripts were detected
+table(rowSums(counts[, c(-1, -2)]) >= 10)
+tmap$totalCount <- rowSums(counts[, c(-1, -2)])[match(tmap$qry_id, counts$TXNAME)]
+# check the class code of all transcripts
+table(tmap$class_code)
+# check the class code of expressed transcripts
+table(tmap[tmap$totalCount >= 10, "class_code"])
+```
+
 We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
 ```{r extrIsoCls}
 tmap.m <- tmap[tmap$class_code == "m", ]
@@ -136,6 +146,7 @@ plotBCV(x)
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
+plotMD(res, main = "RNPC3-targeted vs NT")
 # number of DE transcripts
 summary(decideTestsDGE(res))
 # top DE transcripts
@@ -146,13 +157,13 @@ write.csv(tt, "results/DE_topTags.csv")
 
 [DE results table](results/DE_topTags.csv)
 
-It may take a while to load the following interactive mean-difference plot. 
+<!-- It may take a while to load the following interactive mean-difference plot.  -->
 
-You can click on each dot on the top left plot or each row in the bottom table to check each individual transcript.
-You can also search for gene or transcript names in the table.
-```{r glimmaMA}
-glimmaMA(res, dge = x, main = "Targeted vs Control")
-```
+<!-- You can click on each dot on the top left plot or each row in the bottom table to check each individual transcript. -->
+<!-- You can also search for gene or transcript names in the table. -->
+<!-- ```{r glimmaMA} -->
+<!-- glimmaMA(res, dge = x, main = "Targeted vs Control") -->
+<!-- ``` -->
 
 ### Gene set testing
 
@@ -289,4 +300,3 @@ source("plot_cov.R")
 ```{r sessionInfo}
 sessionInfo()
 ```
-
