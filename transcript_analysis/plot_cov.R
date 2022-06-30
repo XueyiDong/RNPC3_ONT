@@ -143,9 +143,6 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
     if (gene %in% parts$gene_id){
       # cat("Making plot for gene", gene, ".\n")
       features <- parts %>% filter(gene_id == gene)
-      # cvg_over_features <- cvg %>% 
-      #   select(-Bam) %>% 
-      #   join_parts(features)
       if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
         cat("Gene", gene, "strand not unique.\n")
       } else{
