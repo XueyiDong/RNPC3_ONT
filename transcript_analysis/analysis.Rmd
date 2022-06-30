@@ -339,9 +339,9 @@ source("plot_cov.R")
 
 2. Short read Salmon + DTE/DTU analysis
 
-3. Visualization of coverage for Stephen's interesting genes, and add heatmap for transcripts expression
+3. Visualization of coverage for Stephen's interesting genes
 
-4. Short read coverage plots
+4. Add heatmap for transcripts expression
 
 5. Gene set test for DTU results. Perhaps Fisher's exact test?
 
