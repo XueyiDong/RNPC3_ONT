@@ -153,6 +153,24 @@ summary(decideTestsDGE(res))
 topTags(res)
 tt <- topTags(res, n=Inf)
 write.csv(tt, "results/DE_topTags.csv")
+
+# check number of MI transcripts in top n DTEs
+top_n_mi <- function(ts){
+  res = data.frame(
+    n = 1:sum(ts$FDR < 0.05)
+  )
+  res$n_mi = sapply(res$n, function(x){
+    sum(ts[1:x, "isMinorIntron"])
+  }, simplify=TRUE)
+  return(res)
+}
+topN.tt <- top_n_mi(tt)
+pdf("plots/topN_MI_DTE.pdf", height = 4)
+ggplot(topN.tt, aes(x = n, y = n_mi)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(x = "top n DE transcripts", y = "number of minor intron transcripts")
+dev.off()
 ```
 
 [DE results table](results/DE_topTags.csv)
@@ -225,8 +243,27 @@ ts.tx <- topSplice(ds, test = "t", number = Inf)
 table(ts$FDR < 0.05)
 # number of DTU transcripts
 table(ts.tx$FDR < 0.05)
+
 write.csv(ts, file = "results/DTU_gene_topSplice.csv")
 write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
+
+# check number of top DTU MI genes
+
+topN.ts <- top_n_mi(ts)
+pdf("plots/topN_MI_DTU.pdf", height = 4)
+ggplot(topN.ts, aes(x = n, y = n_mi)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(x = "top n DTU genes", y = "number of minor intron genes")
+dev.off()
+
+topN.ts.tx <- top_n_mi(ts.tx)
+pdf("plots/topN_MI_DTU_tx.pdf", height = 4)
+ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(x = "top n DTU transcripts", y = "number of minor intron transcripts")
+dev.off()
 ```
 
 [DTU gene-level results table](results/DTU_gene_topSplice.csv)
@@ -295,6 +332,18 @@ source("plot_cov.R")
 
 [Minor intron genes that are not DTE or DTU but containing class m, n or j transcripts](plots/cov_notSigMI_mnj.pdf)
 
+
+## To do list
+
+1. Quality control plots for this data set
+
+2. Short read Salmon + DTE/DTU analysis
+
+3. Visualization of coverage for Stephen's interesting genes, and add heatmap for transcripts expression
+
+4. Short read coverage plots
+
+5. Gene set test for DTU results. Perhaps Fisher's exact test?
 
 ## Session information
 ```{r sessionInfo}
