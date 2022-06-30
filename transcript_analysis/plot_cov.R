@@ -9,7 +9,7 @@ gr <- read_gff(gff, genome_info = "CHM13v2")
 # saveRDS(parts, "complete_annotation.rds")
 parts <- readRDS("complete_annotation.rds")
 
-# design ----
+# design for long read ----
 bam_dir = "../aligned_minimap2"
 design <- data.frame(
   Sample = paste0(rep(paste(rep(c("NT", "targeted"), c(4, 4)), rep(1:4, 2), sep = "_"), rep(2, 8)), rep(c("_fail", "_pass"), 8)),
@@ -17,11 +17,23 @@ design <- data.frame(
   Replicate = rep(rep(1:4, 2), rep(2, 8)),
   siRNA = rep(c("NT", "RNPC3"), c(8,8))
 )
-# compute coverage ----
-# cvg <- compute_coverage_long(design, source="bam")
+# compute coverage for long read ----
+# cvg <- compute_coverage_long(design, source="Bam")
 # saveRDS(cvg, "complete_coverage.rds")
 cvg <- readRDS("complete_coverage.rds")
 
+# design for short read ----
+bam_short_dir = "/stornext/General/data/user_managed/grpu_mritchie_1/Mei/intron/bam"
+design.short <- data.frame(
+  Sample = paste0(rep(c("NT", "targeted"), each = 4), rep(1:4, 2)),
+  Bam = file.path(bam_short_dir, list.files(bam_short_dir, ".bam$")),
+  Replicate = rep(1:4, 2),
+  siRNA = rep(c("NT", "RNPC3"), each = 4)
+)
+# compute coverage for short read ----
+# cvg.short <- compute_coverage_long(design.short, source="Bam")
+# saveRDS(cvg.short, "complete_coverage_short.RDS")
+cvg.short <- readRDS("complete_coverage_short.RDS")
 
 # transform intron coord into new version----
 # write minor intron information into bed format
@@ -103,13 +115,37 @@ dev.off()
 
 # Visualize coverage using Gviz ----
 library(Gviz)
-plot_cov_genes2 <- function(gene){
+
+make_cov_track <- function(cvg, gene, dataset){
+  if (gene %in% parts$gene_id){
+    # cat("Making plot for gene", gene, ".\n")
+    features <- parts %>% filter(gene_id == gene)
+    cvg_over_features <- cvg %>% 
+      select(-Bam) %>% 
+      join_parts(features)
+    if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
+      cat("Gene", gene, "strand not unique.\n")
+    } else{
+      # calculate mean coverage score by group
+      data <- cvg_over_features %>% plyranges::group_by(siRNA) %>% disjoin_ranges_directed(score = mean(score))
+      dTrack <- lapply(unique(data$siRNA), function(x){
+        DataTrack(range = data %>% filter(siRNA == x),
+                  options(ucscChromosomeNames=FALSE), 
+                  name = paste(x, dataset),
+                  data = "score")
+      })
+      return(dTrack)
+    }
+  }
+}
+
+plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "transcript_id"){
     if (gene %in% parts$gene_id){
       # cat("Making plot for gene", gene, ".\n")
       features <- parts %>% filter(gene_id == gene)
-      cvg_over_features <- cvg %>% 
-        select(-Bam) %>% 
-        join_parts(features)
+      # cvg_over_features <- cvg %>% 
+      #   select(-Bam) %>% 
+      #   join_parts(features)
       if(length(unique(BiocGenerics::strand(unnest_parts(features)))) > 1) {
         cat("Gene", gene, "strand not unique.\n")
       } else{
@@ -118,21 +154,22 @@ plot_cov_genes2 <- function(gene){
         # transcripts annotation
         anno <- gr %>% filter(gene_id == gene, type=="exon")
         aTrack <- AnnotationTrack(anno, 
-                                  group = anno$transcript_id_status,
+                                  group = anno %>% as.data.frame %>% dplyr::pull(anno_col),
                                   options(ucscChromosomeNames=FALSE),
                                   name = "Isoforms")
-        # coverage histogram
-        # calculate mean coverage score by group
-        data <- cvg_over_features %>% plyranges::group_by(siRNA) %>% disjoin_ranges_directed(score = mean(score))
-        dTrack <- lapply(unique(data$siRNA), function(x){
-          DataTrack(range = data %>% filter(siRNA == x),
-                    options(ucscChromosomeNames=FALSE), 
-                    name = x,
-                    data = "score")
-        })
+        trackList = aTrack
+        # add coverage histogram track
+        if("long" %in% cov_data){
+          dTrack_long <- make_cov_track(cvg, gene, "long")
+          trackList <- append(dTrack_long, trackList)
+        }
+        if("short" %in% cov_data){
+          dTrack_short <- make_cov_track(cvg.short, gene, "short")
+          trackList <- append(dTrack_short, trackList)
+        }
         # add highlight for minor intron region
         ref_gene <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)][1]
-        ht <- HighlightTrack(trackList = append(dTrack, aTrack),
+        ht <- HighlightTrack(trackList = trackList,
                              range = mi %>% filter(name == ref_gene))
         plotTracks(list(ht, axisTrack),
                    type="h", groupAnnotation = "group",
@@ -181,8 +218,9 @@ for(i in mi_nosig_genes){
 dev.off()
 
 # test----
+plot_cov_genes2("TMEM80_1")
 plot_cov_genes2("UBL5_1")
-plot_cov_genes2("MYCBP_1")
+plot_cov_genes2("SPCS2_1")
 plot_cov_genes2("KRTCAP2_1")
 pdf("test.pdf")
 for(i in c("UBL5_1", "SPCS2_1")){
