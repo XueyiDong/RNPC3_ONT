@@ -345,6 +345,8 @@ source("plot_cov.R")
 
 5. Gene set test for DTU results. Perhaps Fisher's exact test?
 
+6. GO/KEGG analysis
+
 ## Session information
 ```{r sessionInfo}
 sessionInfo()

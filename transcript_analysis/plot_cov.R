@@ -1,3 +1,13 @@
+# TO DO LIST ----
+# 1. make heatmaps
+# 2. add option in function for adding alignment track
+# 3. Select Stephen's highlighted genes
+
+## DONE LIST ----
+# 1. add short read coverage
+# 2. inport Stephen's gene lists
+
+
 library(superintronic)
 suppressPackageStartupMessages(library(plyranges))
 library(ggplot2)
@@ -90,7 +100,8 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
         trackList = GeneRegionTrack(gr %>% 
                                       filter(gene_id==gene) %>% 
                                       GenomicFeatures::makeTxDbFromGRanges(),
-                                    transcriptAnnotation = "transcript")
+                                    transcriptAnnotation = "transcript",
+                                    options(ucscChromosomeNames=FALSE))
         # add coverage histogram track
         if("long" %in% cov_data){
           dTrack_long <- make_cov_track(cvg, gene, "long")
@@ -113,6 +124,15 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
       cat("Gene", gene, "not found.\n")
     }
 }
+
+# heatmap of DTU genes ----
+# use CPM
+cpm <- readRDS("cpm.RDS")
+make_gen_heatmap <- function(gene){
+  tx <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame %>% dplyr::pull("transcript_id")
+}
+# Current issue: cannot find how the transcripts were ordered in Gviz, even after digging into the plot object.
+# Need to check whether the transcripts were annotated correctly.
 
 
 # add DTE/DTU info and isoform category to annotation ----
@@ -140,6 +160,23 @@ for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
 }
 
 # make plot for Stephen's gene lists
+# extract tables from pdf
+library(tabulizer)
+minor_ir <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 1)[[1]])
+colnames(minor_ir) <- minor_ir[1 ,]
+minor_ir <- minor_ir[-1, ]
+colnames(minor_ir)[6:10] <- colnames(minor_ir)[5:9]
+colnames(minor_ir)[4] <- "Coord start"
+colnames(minor_ir)[5] <- "Coord end"
+minor_as <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 2)[[1]])
+colnames(minor_as) <- minor_as[1, ]
+minor_as <- minor_as[-1, ]
+colnames(minor_as)[6:10] <- colnames(minor_as)[5:9]
+colnames(minor_as)[4] <- "Coord start" 
+colnames(minor_as)[5] <- "Coord end"
+ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
+colnames(ir_finder) <- ir_finder[1, ]
+ir_finder <- ir_finder[-1, ]
 
 # plot for non DTE/DTU minor intron genes
 mi_nosig_genes <- unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_id)]))
