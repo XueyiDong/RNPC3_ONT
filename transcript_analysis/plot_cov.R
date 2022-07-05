@@ -1,11 +1,11 @@
 # TO DO LIST ----
-# 1. make heatmaps
-# 2. add option in function for adding alignment track
-# 3. Select Stephen's highlighted genes
+# 1. add option in function for adding alignment track
+# 2. Select Stephen's highlighted genes
 
 ## DONE LIST ----
 # 1. add short read coverage
 # 2. inport Stephen's gene lists
+# 3. make heatmaps
 
 # Start up ----
 library(superintronic)
@@ -62,7 +62,7 @@ mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 # write_bed(mi, "mi.bed")
 # #intron coord converted using online tool: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 mi <- read_bed("hglft_genome_b5cb_ee5900.bed")
-mi$gene_id <- tmap$qry_gene_id[match(mi$name, tmap$ref_gene_id)]
+mi$gene_id <- refmap$qry_gene_id[match(mi$name, refmap$ref_gene_id)]
 
 # Visualize coverage using Gviz ----
 library(Gviz)
@@ -90,7 +90,8 @@ make_cov_track <- function(cvg, gene, dataset){
   }
 }
 
-plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "transcript_id"){
+plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "transcript_id", 
+                            hightlight_range = mi){
     if (gene %in% parts$gene_id){
       # cat("Making plot for gene", gene, ".\n")
       features <- parts %>% filter(gene_id == gene)
@@ -117,7 +118,7 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
         # add highlight for minor intron region
         ref_gene <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)][1]
         ht <- HighlightTrack(trackList = trackList,
-                             range = mi %>% filter(name == ref_gene))
+                             range = hightlight_range %>% filter(name == ref_gene))
         plotTracks(list(ht, axisTrack),
                    type="h", groupAnnotation = "group",
                    main = paste0(ref_gene, " (", gene, ")")
@@ -139,7 +140,17 @@ cpm <- cpm(counts[, c(-1, -2)], log=TRUE)
 make_gen_heatmap <- function(gene, anno.row=NULL){
   anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
   if(nrow(anno) == 1){
-    cat("Gene ", gene, "only have one transcript.\n")
+    cat("Gene", gene, "only have one transcript.\n")
+    dat <- cpm[anno$transcript_id, ]
+    dat <- data.frame(
+      sample = names(dat),
+      logCPM = dat,
+      group = rep(c("NT", "RNPC3"), each = 4)
+    )
+    p <- ggplot(dat, aes(x = sample, y = logCPM, fill = group)) +
+      geom_bar(stat="identity")+
+      ggtitle(gene)
+    print(p)
   } else {
     dat <- cpm[anno$transcript_id, ]
     anno_col <- data.frame(
@@ -208,25 +219,30 @@ for(i in mi_nosig_genes){
 dev.off()
 
 # make plot for Stephen's gene lists ----
-## extract tables from pdf ----
 library(tabulizer)
+
+## minor ir ----
+### extract lists ----
 minor_ir <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 1)[[1]])
 colnames(minor_ir) <- minor_ir[1 ,]
 minor_ir <- minor_ir[-1, ]
 colnames(minor_ir)[6:10] <- colnames(minor_ir)[5:9]
 colnames(minor_ir)[4] <- "Coord start"
 colnames(minor_ir)[5] <- "Coord end"
-minor_as <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 2)[[1]])
-colnames(minor_as) <- minor_as[1, ]
-minor_as <- minor_as[-1, ]
-colnames(minor_as)[6:10] <- colnames(minor_as)[5:9]
-colnames(minor_as)[4] <- "Coord start" 
-colnames(minor_as)[5] <- "Coord end"
-ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
-colnames(ir_finder) <- ir_finder[1, ]
-ir_finder <- ir_finder[-1, ]
-## make plot ----
-### minor ir ----
+
+#### prepare minor intron region annotation ----
+# # minor_ir_range <- GRanges(
+# #   seqnames = minor_ir$Chr,
+# #   ranges = IRanges(as.numeric(minor_ir$'Coord start'),
+# #                    end = as.numeric(minor_ir$'Coord end'),
+# #                    names = minor_ir$'Gene Name')
+# # )
+# # write_bed(minor_ir_range, "minor_ir_range.bed")
+# # #intron coord converted using online tool: https://genome.ucsc.edu/cgi-bin/hgLiftOver
+# minor_ir_range <- read_bed("hglft_genome_ceec_3de600.bed")
+# minor_ir_range$gene_id <- refmap$qry_gene_id[match(minor_ir_range$name, refmap$ref_gene_id)]
+
+### make plots ----
 genes <- unique(refmap$qry_gene_id[refmap$ref_gene_id %in% minor_ir$`Gene Name`])
 pdf("plots/list/minor_ir_coverage.pdf")
 for(i in genes){
@@ -238,8 +254,62 @@ for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
 }
 dev.off()
-### minor as ----
-genes <- limma::strsplit2(minor_as$)
+
+## minor as ----
+### extract lists ----
+minor_as <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 2)[[1]])
+colnames(minor_as) <- minor_as[1, ]
+minor_as <- minor_as[-1, ]
+minor_as <- minor_as[, -9]
+colnames(minor_as)[5:9] <- colnames(minor_as)[4:8]
+colnames(minor_as)[3] <- "Coord start" 
+colnames(minor_as)[4] <- "Coord end"
+### make plots ----
+genes <- unique(limma::strsplit2(minor_as[,1], "-", fixed=TRUE)[,3])
+genes <- unique(refmap$qry_gene_id[refmap$ref_gene_id %in% genes])
+pdf("plots/list/minor_as_coverage.pdf")
+for(i in genes){
+  plot_cov_genes2(i)
+}
+dev.off()
+pdf("plots/list/minor_as_heatmap.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+}
+dev.off()
+
+## ir_finder ----
+### extract lists ----
+ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
+colnames(ir_finder) <- ir_finder[1, ]
+ir_finder <- ir_finder[-1, ]
+### prepare minor intron region annotation ----
+ir_finder_range <- GRanges(
+  seqnames = paste0("chr", ir_finder$Chr),
+  ranges = IRanges(as.numeric(ir_finder$Start),
+                   end = as.numeric(ir_finder$End),
+                   names = ir_finder$Gene)
+)
+write_bed(ir_finder_range, "ir_finder_range.bed")
+#intron coord converted using online tool: https://genome.ucsc.edu/cgi-bin/hgLiftOver
+ir_finder_range <- read_bed("hglft_genome_2b537_3f5770.bed")
+ir_finder_range$gene_id <- refmap$qry_gene_id[match(ir_finder_range$name, refmap$ref_gene_id)]
+### make plots ----
+genes <- unique(refmap$qry_gene_id[refmap$ref_gene_id %in% ir_finder$Gene])
+pdf("plots/list/ir_finder_coverage2.pdf")
+for(i in genes){
+  plot_cov_genes2(i, hightlight_range = ir_finder_range)
+}
+dev.off()
+pdf("plots/list/ir_finder_heatmap.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+}
+dev.off()
+
+## Gene examples ----
+gene_examples <- xlsx::read.xlsx("../metadata/Gene examples and thoughts.xlsx", sheetIndex = 1)
+
 
 # test----
 plot_cov_genes2("TMEM80_1", anno_col = "transcript_id_status")
