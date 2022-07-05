@@ -7,7 +7,7 @@
 # 1. add short read coverage
 # 2. inport Stephen's gene lists
 
-
+# Start up ----
 library(superintronic)
 suppressPackageStartupMessages(library(plyranges))
 library(ggplot2)
@@ -49,6 +49,9 @@ cvg.short <- readRDS("complete_coverage_short.RDS")
 # transform intron coord into new version----
 # write minor intron information into bed format
 tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
+refmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.refmap")
+refmap$qry_gene_id <- limma::strsplit2(refmap$qry_id_list, "|", fixed = TRUE)[,1]
+refmap$qry_id <- limma::strsplit2(refmap$qry_id_list, "|", fixed = TRUE)[,2]
 mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 # mi <- GRanges(
 #   seqnames = Rle(paste0("chr", mi_gene$Chromosome)),
@@ -127,12 +130,45 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
 
 # heatmap of DTU genes ----
 # use CPM
-cpm <- readRDS("cpm.RDS")
-make_gen_heatmap <- function(gene){
-  tx <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame %>% dplyr::pull("transcript_id")
+counts <- read.delim("../bambu/out/counts_transcript.txt")
+rownames(counts) <- counts$TXNAME
+counts[, seq(4, 18, 2)] <- counts[, seq(4, 18, 2)] + counts[, seq(3, 17, 2)]
+counts <- counts[, -seq(3, 17, 2)]
+colnames(counts) <- gsub("_pass", "", colnames(counts))
+cpm <- cpm(counts[, c(-1, -2)], log=TRUE)
+make_gen_heatmap <- function(gene, anno.row=NULL){
+  anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
+  if(nrow(anno) == 1){
+    cat("Gene ", gene, "only have one transcript.\n")
+  } else {
+    dat <- cpm[anno$transcript_id, ]
+    anno_col <- data.frame(
+      siRNA = rep(c("NT", "RNPC3"), each = 4)
+    )
+    rownames(anno_col) <- paste0("barcode0", 1:8)
+    if(is.null(anno.row)){
+      pheatmap(dat,
+               cluster_rows = FALSE,
+               cluster_cols = FALSE,
+               scale = "column",
+               annotation_col = anno_col,
+               main = gene)
+    } else {
+      anno_row <- as.data.frame(anno[, anno.row]) %>%
+        dplyr::mutate_if(is.logical, as.character)
+      colnames(anno_row) <- anno.row
+      rownames(anno_row) <- anno$transcript_id
+      pheatmap(dat,
+               cluster_rows = FALSE,
+               cluster_cols = FALSE,
+               scale = "column",
+               annotation_col = anno_col,
+               annotation_row = anno_row,
+               main = gene)
+    }
+  }
 }
 # Current issue: cannot find how the transcripts were ordered in Gviz, even after digging into the plot object.
-# Need to check whether the transcripts were annotated correctly.
 
 
 # add DTE/DTU info and isoform category to annotation ----
@@ -159,8 +195,20 @@ for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
   dev.off()
 }
 
-# make plot for Stephen's gene lists
-# extract tables from pdf
+# plot for non DTE/DTU minor intron genes
+mi_nosig_genes <- unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_id)]))
+mi_nosig_genes <- mi_nosig_genes[!(mi_nosig_genes %in% union(genes$DTEgenesMI, genes$DTUgenesMI))]
+mi_nosig_genes <- mi_nosig_genes[sapply(mi_nosig_genes, function(x){
+  !!sum(c("m", "n", "j") %in% filter(gr, gene_id == x)$class_code)
+}, simplify = TRUE)]
+pdf("plots/cov_notSigMI_mnj.pdf")
+for(i in mi_nosig_genes){
+  plot_cov_genes2(i, anno_col = "transcript_id_status")
+}
+dev.off()
+
+# make plot for Stephen's gene lists ----
+## extract tables from pdf ----
 library(tabulizer)
 minor_ir <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 1)[[1]])
 colnames(minor_ir) <- minor_ir[1 ,]
@@ -177,18 +225,21 @@ colnames(minor_as)[5] <- "Coord end"
 ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
 colnames(ir_finder) <- ir_finder[1, ]
 ir_finder <- ir_finder[-1, ]
-
-# plot for non DTE/DTU minor intron genes
-mi_nosig_genes <- unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_id)]))
-mi_nosig_genes <- mi_nosig_genes[!(mi_nosig_genes %in% union(genes$DTEgenesMI, genes$DTUgenesMI))]
-mi_nosig_genes <- mi_nosig_genes[sapply(mi_nosig_genes, function(x){
-  !!sum(c("m", "n", "j") %in% filter(gr, gene_id == x)$class_code)
-}, simplify = TRUE)]
-pdf("plots/cov_notSigMI_mnj.pdf")
-for(i in mi_nosig_genes){
-  plot_cov_genes2(i, anno_col = "transcript_id_status")
+## make plot ----
+### minor ir ----
+genes <- unique(refmap$qry_gene_id[refmap$ref_gene_id %in% minor_ir$`Gene Name`])
+pdf("plots/list/minor_ir_coverage.pdf")
+for(i in genes){
+  plot_cov_genes2(i)
 }
 dev.off()
+pdf("plots/list/minor_ir_heatmap.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+}
+dev.off()
+### minor as ----
+genes <- limma::strsplit2(minor_as$)
 
 # test----
 plot_cov_genes2("TMEM80_1", anno_col = "transcript_id_status")
@@ -200,4 +251,10 @@ pdf("test.pdf")
 for(i in c("UBL5_1", "SPCS2_1")){
   plot_cov_genes2(i)
 }
+dev.off()
+
+pdf("test2.pdf", width = 10)
+# par(mfrow=c(1, 2))
+plot_cov_genes2("TMEM80_1", cov_data = "long")
+make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
 dev.off()

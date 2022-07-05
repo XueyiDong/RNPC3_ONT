@@ -19,4 +19,4 @@ module load samtools/1.7
 # done
 
 minimap2 -ax map-ont -t 8 --sam-hit-only $ref $FQ/$1.fq.gz | samtools view -b | samtools sort > $1.bam
-samtools index $1.bam $.bai
+samtools index $1.bam $1.bai
