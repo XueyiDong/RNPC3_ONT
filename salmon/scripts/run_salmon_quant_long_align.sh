@@ -24,7 +24,7 @@ mkdir -p ../tx_aligned_bambu_minimap2/primary
 # 	salmon quant -t bambu_transcripts.fa -l A -a ../tx_aligned_bambu_minimap2/primary/$SAMPLE\_pass.bam ../tx_aligned_bambu_minimap2/primary/$SAMPLE\_fail.bam -o ./long_bambu/$SAMPLE -p 16 --numBootstraps 100 -v
 # done
 
-mkdir -p ./long_bambu/$1
-samtools view -F 256 -b -@ 8 ../tx_aligned_bambu_minimap2/$1\_pass.bam > ../tx_aligned_bambu_minimap2/primary/$1\_pass.bam
-samtools view -F 256 -b -@ 8 ../tx_aligned_bambu_minimap2/$1\_fail.bam > ../tx_aligned_bambu_minimap2/primary/$1\_fail.bam
-salmon quant -t bambu_transcripts.fa -l A -a ../tx_aligned_bambu_minimap2/primary/$1\_pass.bam ../tx_aligned_bambu_minimap2/primary/$1\_fail.bam -o ./long_bambu/$1 -p 16 --numBootstraps 100 -v
+mkdir -p ./long_bambu_align/$1
+# samtools view -F 256 -b -@ 8 ../tx_aligned_bambu_minimap2/$1\_pass.bam > ../tx_aligned_bambu_minimap2/primary/$1\_pass.bam
+# samtools view -F 256 -b -@ 8 ../tx_aligned_bambu_minimap2/$1\_fail.bam > ../tx_aligned_bambu_minimap2/primary/$1\_fail.bam
+salmon quant -t bambu_transcripts.fa -l A -a ../tx_aligned_bambu_minimap2/primary/$1\_pass.bam ../tx_aligned_bambu_minimap2/primary/$1\_fail.bam -o ./long_bambu_align/$1 -p 16 --numBootstraps 100
