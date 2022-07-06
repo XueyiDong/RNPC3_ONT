@@ -137,7 +137,8 @@ counts[, seq(4, 18, 2)] <- counts[, seq(4, 18, 2)] + counts[, seq(3, 17, 2)]
 counts <- counts[, -seq(3, 17, 2)]
 colnames(counts) <- gsub("_pass", "", colnames(counts))
 cpm <- cpm(counts[, c(-1, -2)], log=TRUE)
-make_gen_heatmap <- function(gene, anno.row=NULL){
+make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none", 
+                             cluster_rows = TRUE, cluster_cols = FALSE){
   anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
   if(nrow(anno) == 1){
     cat("Gene", gene, "only have one transcript.\n")
@@ -159,9 +160,9 @@ make_gen_heatmap <- function(gene, anno.row=NULL){
     rownames(anno_col) <- paste0("barcode0", 1:8)
     if(is.null(anno.row)){
       pheatmap(dat,
-               cluster_rows = FALSE,
-               cluster_cols = FALSE,
-               scale = "column",
+               cluster_rows = cluster_rows,
+               cluster_cols = cluster_cols,
+               scale = scale,
                annotation_col = anno_col,
                main = gene)
     } else {
@@ -170,9 +171,9 @@ make_gen_heatmap <- function(gene, anno.row=NULL){
       colnames(anno_row) <- anno.row
       rownames(anno_row) <- anno$transcript_id
       pheatmap(dat,
-               cluster_rows = FALSE,
-               cluster_cols = FALSE,
-               scale = "column",
+               cluster_rows = cluster_rows,
+               cluster_cols = cluster_cols,
+               scale = scale,
                annotation_col = anno_col,
                annotation_row = anno_row,
                main = gene)
@@ -194,29 +195,11 @@ gr$transcript_id_status[gr$isDTU] <- paste(gr$transcript_id_status[gr$isDTU], "(
 gr$class_code <- tmap$class_code[match(gr$transcript_id, tmap$qry_id)]
 gr$transcript_id_status <- paste(gr$transcript_id_status, gr$class_code)
 
-# make plot for DTE/DTU using gviz ----
-# genes <- list()
-for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
-  cat("Working on", i, ".\n")
-  # genes[[i]] <- readRDS(paste0(i, ".RDS"))
-  pdf(paste0("plots/cov_", i, "2.pdf"))
-  for(j in genes[[i]]){
-    plot_cov_genes2(j)
-  }
-  dev.off()
-}
-
-# plot for non DTE/DTU minor intron genes
-mi_nosig_genes <- unique(na.omit(tmap$qry_gene_id[match(mi_gene$Gene.Name, tmap$ref_gene_id)]))
-mi_nosig_genes <- mi_nosig_genes[!(mi_nosig_genes %in% union(genes$DTEgenesMI, genes$DTUgenesMI))]
-mi_nosig_genes <- mi_nosig_genes[sapply(mi_nosig_genes, function(x){
-  !!sum(c("m", "n", "j") %in% filter(gr, gene_id == x)$class_code)
-}, simplify = TRUE)]
-pdf("plots/cov_notSigMI_mnj.pdf")
-for(i in mi_nosig_genes){
-  plot_cov_genes2(i, anno_col = "transcript_id_status")
-}
-dev.off()
+# WARNING: this should be run after imporint Stephen's lists
+gr$ref_gene_id <- refmap$ref_gene_id[match(gr$gene_id, refmap$qry_gene_id)]
+gr$minor_ir <- gr$ref_gene_id %in% minor_ir$`Gene Name`
+gr$minor_as <- gr$ref_gene_id %in% limma::strsplit2(minor_as$`AS event – Gene ID – Gene Name`, "-", fixed=TRUE)[,3]
+gr$ir_finder <- gr$ref_gene_id %in%ir_finder$Gene
 
 # make plot for Stephen's gene lists ----
 library(tabulizer)
@@ -251,7 +234,7 @@ for(i in genes){
 dev.off()
 pdf("plots/list/minor_ir_heatmap.pdf")
 for(i in genes){
-  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
 
@@ -274,7 +257,7 @@ for(i in genes){
 dev.off()
 pdf("plots/list/minor_as_heatmap.pdf")
 for(i in genes){
-  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
 
@@ -303,12 +286,42 @@ for(i in genes){
 dev.off()
 pdf("plots/list/ir_finder_heatmap.pdf")
 for(i in genes){
-  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE"))
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
 
 ## Gene examples ----
 gene_examples <- xlsx::read.xlsx("../metadata/Gene examples and thoughts.xlsx", sheetIndex = 1)
+
+# make plot for DTE/DTU using gviz ----
+genes <- list()
+for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
+  cat("Working on", i, ".\n")
+  genes[[i]] <- readRDS(paste0(i, ".RDS"))
+  pdf(paste0("plots/cov_", i, "2.pdf"))
+  for(j in genes[[i]]){
+    plot_cov_genes2(j)
+  }
+  dev.off()
+  pdf(paste0("plots/heatmap_", i, "2.pdf"))
+  for(j in genes[[i]]){
+    make_gen_heatmap(j, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
+  }
+  dev.off()
+}
+
+# plot for non DTE/DTU minor intron genes
+mi_nosig_genes <- unique(na.omit(refmap$qry_gene_id[match(mi_gene$Gene.Name, refmap$ref_gene_id)]))
+mi_nosig_genes <- mi_nosig_genes[!(mi_nosig_genes %in% union(genes$DTEgenesMI, genes$DTUgenesMI))]
+mi_nosig_genes <- mi_nosig_genes[sapply(mi_nosig_genes, function(x){
+  !!sum(c("m", "n", "j") %in% filter(gr, gene_id == x)$class_code)
+}, simplify = TRUE)]
+pdf("plots/cov_notSigMI_mnj.pdf")
+for(i in mi_nosig_genes){
+  plot_cov_genes2(i, anno_col = "transcript_id_status")
+}
+dev.off()
+
 
 
 # test----
