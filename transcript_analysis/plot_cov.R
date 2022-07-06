@@ -91,7 +91,7 @@ make_cov_track <- function(cvg, gene, dataset){
 }
 
 plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "transcript_id", 
-                            hightlight_range = mi){
+                            hightlight_range = mi, alignment_track = FALSE){
     if (gene %in% parts$gene_id){
       # cat("Making plot for gene", gene, ".\n")
       features <- parts %>% filter(gene_id == gene)
@@ -114,6 +114,30 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
         if("short" %in% cov_data){
           dTrack_short <- make_cov_track(cvg.short, gene, "short")
           trackList <- append(dTrack_short, trackList)
+        }
+        # add alignment track
+        if(alignment_track){
+          # anno_range <- gr %>% filter(gene_id == gene, type == "gene")
+          alTrack_long <- lapply(design$Bam, function(x){
+            AlignmentsTrack(x, isPaired = FALSE,
+                            # chromosome = as.character(seqnames(anno_range)),
+                            # start = start(anno_range),
+                            # end = end(anno_range),
+                            options(ucscChromosomeNames=FALSE),
+                            type = "pileup",
+                            name = paste(x, "long"))
+          })
+          trackList <- append(alTrack_long, trackList)
+          alTrack_short <- lapply(design.short$Bam, function(x){
+            AlignmentsTrack(x, isPaired = TRUE,
+                            # chromosome = as.character(seqnames(anno_range)),
+                            # start = start(anno_range),
+                            # end = end(anno_range),
+                            options(ucscChromosomeNames=FALSE),
+                            type = "pileup",
+                            name = paste(x, "long"))
+          })
+          trackList<- append(alTrack_short, trackList)
         }
         # add highlight for minor intron region
         ref_gene <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)][1]
@@ -336,8 +360,19 @@ for(i in c("UBL5_1", "SPCS2_1")){
 }
 dev.off()
 
-pdf("test2.pdf", width = 10)
+pdf("plots/test.pdf", width = 10)
 # par(mfrow=c(1, 2))
-plot_cov_genes2("TMEM80_1", cov_data = "long")
-make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
+plot_cov_genes2("TMEM80_1", alignment_track = FALSE)
+# make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
+dev.off()
+
+test_rg <- gr %>% filter(gene_id=="TMEM80_1", type=="gene")
+test_alTrack_long <- AlignmentsTrack(design$Bam[1], isPaired = FALSE,
+                                     chromosome = as.character(seqnames(test_rg)),
+                                     start = start(test_rg),
+                                     end = end(test_rg),
+                                # range = gr %>% filter(gene_id=="TMEM80_1", type=="gene"),
+                                options(ucscChromosomeNames=FALSE))
+pdf("plots/testAlTr.pdf", width = 10)
+plotTracks(test_alTrack_long,  from=start(test_rg),to=end(test_rg))
 dev.off()
