@@ -1,7 +1,7 @@
 ---
-title: "RNPC3 minor intron splicing analysis"
+title: "RNPC3 short-read minor class intron splicing analysis"
 author: "Xueyi Dong"
-date: '2022-06-06'
+date: '2022-07-07'
 output:
   html_document:
     toc: true
@@ -18,31 +18,19 @@ knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 
 ### Samples information
 
-A549 cell line samples provided by Joan Heath, sequenced using nanopore PCR cDNA protocol on 3 flow cells.
+A549 cell line samples provided by Joan Heath.
 
-barcode01-04: controls (non-targeted), barcode05-08: targeted with rnpc3 siRNA 18.
+The gene-level analysis for this dataset was done previously.
 
 ### Pre-processing
 
-Basecalling and demultiplexing were done using Guppy version 6.0.6.
+The transcriptome was detected by bambu on long-read data.
 
-Reads were mapped to human CHM13v2 reference genome using minimap2 version 2.17.
-
-Novel isoforms identified and transcript-level counts generated using bambu version 1.0.3.
-
-The gtf of identified isoforms was then compared to CHM13v2 annotation using gffcompare.
-
-(Not finished) Quality control report of identified isoforms was generated using SQANTI3 version 5.0, with short read data to calculate splicing junction coverage.
+Reads were quantified against bambu transcripts using Salmon version 1.9.0 mapping-based mode.
 
 ### Aims and plan
 
-We want to explore human minor introns and splicing events using long read sequencing.
-
-First, we will check the novel isoforms detected. We will especially focus on whether there is "intron retention" class novel isoforms from the gene list provided by Joan and Stephen. 
-
-Next, we will perform differential transcript expression (DTE) analysis and differential transcript usage (DTU) analysis to see what is changed between targeted and untargetet samples. Then, we will perform gene set testing to further explore the DTE and DTU results.
-
-Finally, we will visualize the isoform structure and genomic coverage of interesting genes.
+We want to apply the same DTE and DTU pipeline that was used on long-read transcript-level count data.
 
 ## Prepare and load the data
 
@@ -50,62 +38,20 @@ Finally, we will visualize the isoform structure and genomic coverage of interes
 library(edgeR)
 library(limma)
 library(Glimma)
-library(superintronic)
-suppressPackageStartupMessages(library(plyranges))
+# library(superintronic)
+# suppressPackageStartupMessages(library(plyranges))
 ```
 
 ```{r load_data}
-counts <- read.delim("../bambu/out/counts_transcript.txt")
-rownames(counts) <- counts$TXNAME
 tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
 mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 ```
 
-## minor intron gene analysis
+Counts were loaded using `catchSalmon` function from *edgeR*.
 
-Check which minor intron genes are not available in our dataset.
-```{r checkMiGene}
-mi_gene$Gene.Name[!(mi_gene$Gene.Name %in% tmap$ref_gene_id)]
+```{r catchSalmon}
+counts <- catchSalmon(path = paste0("../salmon/short_bambu/", list.files("../salmon/short_bambu/")))
 ```
-
-Below is the explanation of the *gffcompare* transcript classifications:
-![*gffcompare* transcript classifications](gffcompare_codes.png)
-
-```{r qc}
-# check how many expressed transcripts were detected
-table(rowSums(counts[, c(-1, -2)]) >= 10)
-tmap$totalCount <- rowSums(counts[, c(-1, -2)])[match(tmap$qry_id, counts$TXNAME)]
-# check the class code of all transcripts
-table(tmap$class_code)
-# check the class code of expressed transcripts
-table(tmap[tmap$totalCount >= 10, "class_code"])
-```
-
-We extract transcript class "m" and "n" (intron retentions) from gffcompare output.
-```{r extrIsoCls}
-tmap.m <- tmap[tmap$class_code == "m", ]
-tmap.n <- tmap[tmap$class_code == "n", ]
-```
-
-Check how many of "m" and "n" are in the minor intron genes list. We use "ref_gene_id" (annotated gene name) to identify the gene that the isoforms belong to.
-```{r ChkIsoCls}
-table(tmap.m$ref_gene_id %in% mi_gene$Gene.Name)
-table(tmap.n$ref_gene_id %in% mi_gene$Gene.Name)
-```
-
-Save the lists of "m" and "n" minor intron isoforms.
-```{r SaveIsoCls}
-write.csv(tmap.m[tmap.m$ref_gene_id %in% mi_gene$Gene.Name, ],
-          "results/miGenesClassMTx.csv")
-write.csv(tmap.n[tmap.n$ref_gene_id %in% mi_gene$Gene.Name, ],
-          "results/miGenesClassNTx.csv")
-```
-
-The transcript ids are in the "qry_id" column of the lists.
-
-[class m](results/miGenesClassMTx.csv)
-
-[class n](results/miGenesClassNTx.csv)
 
 ## Differential expression analysis
 
@@ -114,13 +60,10 @@ The transcript ids are in the "qry_id" column of the lists.
 When preparing data objects, we combined counts from quality pass and fail reads for each sample.
 
 ```{r DGEList}
-x <- DGEList(counts = counts[, c(-1, -2)])
-x$counts[, seq(2, 16, 2)] <-x$counts[, seq(1, 15, 2)] + x$counts[, seq(2, 16, 2)] 
-x$samples$lib.size[seq(2, 16, 2)] <- x$samples$lib.size[seq(1, 15, 2)] + x$samples$lib.size[seq(2, 16, 2)]
-x <- x[, -seq(1, 15, 2)]
+x <- DGEList(counts = counts$counts / counts$annotation$Overdispersion, genes = counts$annotation)
 x$samples$group <- rep(c("control", "targeted"), c(4, 4))
-colnames(x) <- gsub("_pass", "", colnames(x))
-x$genes <- tmap[match(rownames(x), tmap$qry_id), 1:6]
+colnames(x) <- paste(rep(c("NT", "RNPC3"), each = 4), rep(1:4, 2), sep = "_")
+x$genes <- cbind(x$genes, tmap[match(rownames(x), tmap$qry_id), 1:6])
 x$genes$isMinorIntron <- x$genes$ref_gene_id %in% mi_gene$Gene.Name
 ```
 ### Filtering, normalization and MDS plot

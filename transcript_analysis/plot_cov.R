@@ -1,11 +1,12 @@
 # TO DO LIST ----
 # 1. add option in function for adding alignment track
-# 2. Select Stephen's highlighted genes
+# 2. make short read heatmap
 
 ## DONE LIST ----
 # 1. add short read coverage
 # 2. inport Stephen's gene lists
 # 3. make heatmaps
+# 4. Select Stephen's highlighted genes
 
 # Start up ----
 library(superintronic)
@@ -83,7 +84,8 @@ make_cov_track <- function(cvg, gene, dataset){
         DataTrack(range = data %>% filter(siRNA == x),
                   options(ucscChromosomeNames=FALSE), 
                   name = paste(x, dataset),
-                  data = "score")
+                  data = "score",
+                  type = "h")
       })
       return(dTrack)
     }
@@ -118,33 +120,30 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
         # add alignment track
         if(alignment_track){
           # anno_range <- gr %>% filter(gene_id == gene, type == "gene")
-          alTrack_long <- lapply(design$Bam, function(x){
-            AlignmentsTrack(x, isPaired = FALSE,
-                            # chromosome = as.character(seqnames(anno_range)),
-                            # start = start(anno_range),
-                            # end = end(anno_range),
-                            options(ucscChromosomeNames=FALSE),
-                            type = "pileup",
-                            name = paste(x, "long"))
-          })
-          trackList <- append(alTrack_long, trackList)
-          alTrack_short <- lapply(design.short$Bam, function(x){
-            AlignmentsTrack(x, isPaired = TRUE,
-                            # chromosome = as.character(seqnames(anno_range)),
-                            # start = start(anno_range),
-                            # end = end(anno_range),
-                            options(ucscChromosomeNames=FALSE),
-                            type = "pileup",
-                            name = paste(x, "long"))
-          })
-          trackList<- append(alTrack_short, trackList)
+          alTrack_long_NT <- AlignmentsTrack("../aligned_minimap2/merged_NT.bam",
+                                             options(ucscChromosomeNames=FALSE),
+                                             type = "pileup",
+                                             name = "long NT")
+          alTrack_long_RNPC3 <- AlignmentsTrack("../aligned_minimap2/merged_RNPC3.bam",
+                                             options(ucscChromosomeNames=FALSE),
+                                             type = "pileup",
+                                             name = "short RNPC3")
+          alTrack_short_NT <- AlignmentsTrack("../short_bam_merged/merged_NT.bam",
+                                             options(ucscChromosomeNames=FALSE),
+                                             type = "pileup",
+                                             name = "long NT")
+          alTrack_short_RNPC3 <- AlignmentsTrack("../short_bam_merged/merged_RNPC3.bam",
+                                                options(ucscChromosomeNames=FALSE),
+                                                type = "pileup",
+                                                name = "short RNPC3")
+          trackList<- Reduce(append, c(alTrack_long_NT, alTrack_long_RNPC3, alTrack_short_NT, alTrack_short_RNPC3, trackList))
         }
         # add highlight for minor intron region
         ref_gene <- tmap$ref_gene_id[match(gene, tmap$qry_gene_id)][1]
         ht <- HighlightTrack(trackList = trackList,
                              range = hightlight_range %>% filter(name == ref_gene))
         plotTracks(list(ht, axisTrack),
-                   type="h", groupAnnotation = "group",
+                   groupAnnotation = "group",
                    main = paste0(ref_gene, " (", gene, ")")
                    )
       }
@@ -373,7 +372,8 @@ dev.off()
 
 pdf("plots/test.pdf", width = 10)
 # par(mfrow=c(1, 2))
-plot_cov_genes2("TMEM80_1", cov_data = "long", alignment_track = TRUE)
+plot_cov_genes2("TMEM80_1", cov_data = NULL, alignment_track = TRUE)
+# plot_cov_genes2("TMEM80_1", cov_data = "long")
 # make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
 dev.off()
 
