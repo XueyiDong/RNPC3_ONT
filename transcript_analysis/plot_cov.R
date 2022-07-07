@@ -316,6 +316,17 @@ dev.off()
 
 ## Gene examples ----
 gene_examples <- xlsx::read.xlsx("../metadata/Gene examples and thoughts.xlsx", sheetIndex = 1)
+genes <- refmap$qry_gene_id[match(na.omit(gene_examples$Gene), refmap$ref_gene_id)]
+pdf("plots/list/gene_examples_coverage.pdf")
+for(i in genes){
+  plot_cov_genes2(i)
+}
+dev.off()
+pdf("plots/list/gene_examples_heatmap.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
+}
+dev.off()
 
 # make plot for DTE/DTU using gviz ----
 genes <- list()
@@ -362,7 +373,7 @@ dev.off()
 
 pdf("plots/test.pdf", width = 10)
 # par(mfrow=c(1, 2))
-plot_cov_genes2("TMEM80_1", alignment_track = FALSE)
+plot_cov_genes2("TMEM80_1", cov_data = "long", alignment_track = TRUE)
 # make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
 dev.off()
 
