@@ -38,6 +38,7 @@ We want to apply the same DTE and DTU pipeline that was used on long-read transc
 library(edgeR)
 library(limma)
 library(Glimma)
+library(ggplot2)
 # library(superintronic)
 # suppressPackageStartupMessages(library(plyranges))
 ```
@@ -57,7 +58,7 @@ counts <- catchSalmon(path = paste0("../salmon/short_bambu/", list.files("../sal
 
 ### Preparing data object
 
-When preparing data objects, we combined counts from quality pass and fail reads for each sample.
+Raw counts were divided by over-dispersion coefficients.
 
 ```{r DGEList}
 x <- DGEList(counts = counts$counts / counts$annotation$Overdispersion, genes = counts$annotation)
@@ -78,7 +79,7 @@ x$samples
 glimmaMDS(x)
 ```
 
-On the MDS plot, samples from different groups are separated on dimension 2.
+On the MDS plot, sample NT_4 and RNPC3_4 performed slightly different from other samples. Similar situation were also observed in our long-read data.
 
 ### DE analysis using *edgeR* quasi-likelihood method
 
@@ -95,20 +96,20 @@ summary(decideTestsDGE(res))
 # top DE transcripts
 topTags(res)
 tt <- topTags(res, n=Inf)
-write.csv(tt, "results/DE_topTags.csv")
+write.csv(tt, "results_short/DE_topTags.csv")
 
 # check number of MI transcripts in top n DTEs
 top_n_mi <- function(ts){
   res = data.frame(
-    n = 1:sum(ts$FDR < 0.05)
+    n = 1:min(sum(ts$FDR < 0.05), sum(ts$isMinorIntron))
   )
   res$n_mi = sapply(res$n, function(x){
     sum(ts[1:x, "isMinorIntron"])
   }, simplify=TRUE)
   return(res)
 }
-topN.tt <- top_n_mi(tt)
-pdf("plots/topN_MI_DTE.pdf", height = 4)
+topN.tt <- top_n_mi(as.data.frame(tt))
+pdf("plots_short/topN_MI_DTE.pdf", height = 4)
 ggplot(topN.tt, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -116,15 +117,9 @@ ggplot(topN.tt, aes(x = n, y = n_mi)) +
 dev.off()
 ```
 
-[DE results table](results/DE_topTags.csv)
+[DE results table](results_short/DE_topTags.csv)
 
-<!-- It may take a while to load the following interactive mean-difference plot.  -->
-
-<!-- You can click on each dot on the top left plot or each row in the bottom table to check each individual transcript. -->
-<!-- You can also search for gene or transcript names in the table. -->
-<!-- ```{r glimmaMA} -->
-<!-- glimmaMA(res, dge = x, main = "Targeted vs Control") -->
-<!-- ``` -->
+[Number of minor intron genes in top N DE transcripts](plots_short/topN_MI_DTE.pdf)
 
 ### Gene set testing
 
@@ -140,7 +135,6 @@ fry(lcpm, x$genes$isMinorIntron,design)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
             main = "Minor intron genes, targeted vs control")
 ```
-Transcripts from minor intron splicing genes are up regulated.
 
 #### Transcript classifications
 
@@ -166,8 +160,6 @@ barcodeplot(res$table$logFC, index = x$genes$class_code=="j",
             main = "Transcript class n, targeted vs control")
 ```
 
-It seems like the expression of transcript classes "m", "n" and "j" are not regulated directionally together.
-
 ## Differential transcript usage analysis
 
 ### DTU analysis using *limma-diffSplice*
@@ -187,13 +179,13 @@ table(ts$FDR < 0.05)
 # number of DTU transcripts
 table(ts.tx$FDR < 0.05)
 
-write.csv(ts, file = "results/DTU_gene_topSplice.csv")
-write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
+write.csv(ts, file = "results_short/DTU_gene_topSplice.csv")
+write.csv(ts.tx, file = "results_short/DTU_transcript_topSplice.csv")
 
 # check number of top DTU MI genes
 
 topN.ts <- top_n_mi(ts)
-pdf("plots/topN_MI_DTU.pdf", height = 4)
+pdf("plots_short/topN_MI_DTU.pdf", height = 4)
 ggplot(topN.ts, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -201,7 +193,7 @@ ggplot(topN.ts, aes(x = n, y = n_mi)) +
 dev.off()
 
 topN.ts.tx <- top_n_mi(ts.tx)
-pdf("plots/topN_MI_DTU_tx.pdf", height = 4)
+pdf("plots_short/topN_MI_DTU_tx.pdf", height = 4)
 ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -209,13 +201,15 @@ ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
 dev.off()
 ```
 
-[DTU gene-level results table](results/DTU_gene_topSplice.csv)
+[DTU gene-level results table](results_short/DTU_gene_topSplice.csv)
 
-[DTU transcript-level results table](results/DTU_transcript_topSplice.csv)
+[DTU transcript-level results table](results_short/DTU_transcript_topSplice.csv)
+
+[Number of minor intron genes in top N DTU genes](plots_short/topN_MI_DTU.pdf)
+
+[Number of minor intron transcripts in top N DTU transcripts](plots_short/topN_MI_DTU_tx.pdf)
 
 ### Gene set testing based on transcript-level DTU results
-
-<!-- In the output, significant "Down" and "Up" p-value means the DE results are negatively or positively correlated with the expression of the set. Significant "UpOrDown" p-value means up or down regulation, but the direction is not specified. "Mixed" is used to test the correlation without regard for direction. -->
 
 #### Minor intron genes
 
@@ -273,39 +267,39 @@ test.down$p.value
 ```
 
 
-## Visualization of transcripts coverage
+<!-- ## Visualization of transcripts coverage -->
 
-Due to high computation load, visualization was done in a separate script. notice that genes without known strand information are not plotted.
+<!-- Due to high computation load, visualization was done in a separate script. notice that genes without known strand information are not plotted. -->
 
 ```{r saveGeneName}
 # save DTE gene names
 tt <- as.data.frame(tt)
-saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "DTEgenesMI.RDS")
-saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "DTEgenesNotMI.RDS")
-saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "DTUgenesMI.RDS")
-saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "DTUgenesNotMI.RDS")
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "results_short/DTEgenesMI.RDS")
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "results_short/DTEgenesNotMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "results_short/DTUgenesMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "results_short/DTUgenesNotMI.RDS")
 ```
 
 ```{r txViz, eval=FALSE}
 source("plot_cov.R")
 ```
 
-[DTE minor intron genes](plots/cov_DTEgenesMI2.pdf)
+<!-- [DTE minor intron genes](plots/cov_DTEgenesMI2.pdf) -->
 
-[DTE not minor intron genes](plots/cov_DTEgenesNotMI2.pdf)
+<!-- [DTE not minor intron genes](plots/cov_DTEgenesNotMI2.pdf) -->
 
-[DTU minor intron genes](plots/cov_DTUgenesMI2.pdf)
+<!-- [DTU minor intron genes](plots/cov_DTUgenesMI2.pdf) -->
 
-[DTU not minor intron genes](plots/cov_DTUgenesNotM2I.pdf)
+<!-- [DTU not minor intron genes](plots/cov_DTUgenesNotM2I.pdf) -->
 
-[Minor intron genes that are not DTE or DTU but containing class m, n or j transcripts](plots/cov_notSigMI_mnj.pdf)
+<!-- [Minor intron genes that are not DTE or DTU but containing class m, n or j transcripts](plots/cov_notSigMI_mnj.pdf) -->
 
 
 ## To do list
 
-1. Quality control plots for this data set
+1. Quality control plots
 
-2. Short read Salmon + DTE/DTU analysis
+2. Compare results from long vs short read (roast gene set test, overlap etc.)
 
 3. GO/KEGG analysis (the `goana` and `kegga` functions are only available for gene level)
 

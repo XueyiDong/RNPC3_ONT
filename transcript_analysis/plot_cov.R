@@ -121,21 +121,25 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
         if(alignment_track){
           # anno_range <- gr %>% filter(gene_id == gene, type == "gene")
           alTrack_long_NT <- AlignmentsTrack("../aligned_minimap2/merged_NT.bam",
+                                             isPaired = FALSE,
                                              options(ucscChromosomeNames=FALSE),
                                              type = "pileup",
                                              name = "long NT")
           alTrack_long_RNPC3 <- AlignmentsTrack("../aligned_minimap2/merged_RNPC3.bam",
-                                             options(ucscChromosomeNames=FALSE),
-                                             type = "pileup",
-                                             name = "short RNPC3")
-          alTrack_short_NT <- AlignmentsTrack("../short_bam_merged/merged_NT.bam",
-                                             options(ucscChromosomeNames=FALSE),
-                                             type = "pileup",
-                                             name = "long NT")
-          alTrack_short_RNPC3 <- AlignmentsTrack("../short_bam_merged/merged_RNPC3.bam",
+                                                isPaired = FALSE,
                                                 options(ucscChromosomeNames=FALSE),
                                                 type = "pileup",
-                                                name = "short RNPC3")
+                                                name = "long RNPC3")
+          alTrack_short_NT <- AlignmentsTrack("../short_bam_merged/merged_NT.bam",
+                                              isPaired = TRUE,
+                                              options(ucscChromosomeNames=FALSE),
+                                              type = "pileup",
+                                              name = "short NT")
+          alTrack_short_RNPC3 <- AlignmentsTrack("../short_bam_merged/merged_RNPC3.bam",
+                                                 isPaired = TRUE,
+                                                 options(ucscChromosomeNames=FALSE),
+                                                 type = "pileup",
+                                                 name = "short RNPC3")
           trackList<- Reduce(append, c(alTrack_long_NT, alTrack_long_RNPC3, alTrack_short_NT, alTrack_short_RNPC3, trackList))
         }
         # add highlight for minor intron region

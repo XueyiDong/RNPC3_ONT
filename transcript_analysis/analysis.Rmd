@@ -50,6 +50,7 @@ Finally, we will visualize the isoform structure and genomic coverage of interes
 library(edgeR)
 library(limma)
 library(Glimma)
+library(ggplot2)
 library(superintronic)
 suppressPackageStartupMessages(library(plyranges))
 ```
@@ -157,14 +158,14 @@ write.csv(tt, "results/DE_topTags.csv")
 # check number of MI transcripts in top n DTEs
 top_n_mi <- function(ts){
   res = data.frame(
-    n = 1:sum(ts$FDR < 0.05)
+    n = 1:min(sum(ts$FDR < 0.05), sum(ts$isMinorIntron))
   )
   res$n_mi = sapply(res$n, function(x){
     sum(ts[1:x, "isMinorIntron"])
   }, simplify=TRUE)
   return(res)
 }
-topN.tt <- top_n_mi(tt)
+topN.tt <- top_n_mi(as.data.frame(tt))
 pdf("plots/topN_MI_DTE.pdf", height = 4)
 ggplot(topN.tt, aes(x = n, y = n_mi)) +
   geom_point() +
@@ -174,6 +175,8 @@ dev.off()
 ```
 
 [DE results table](results/DE_topTags.csv)
+
+[Number of minor intron genes in top N DE transcripts](plots/topN_MI_DTE.pdf)
 
 <!-- It may take a while to load the following interactive mean-difference plot.  -->
 
@@ -269,6 +272,10 @@ dev.off()
 [DTU gene-level results table](results/DTU_gene_topSplice.csv)
 
 [DTU transcript-level results table](results/DTU_transcript_topSplice.csv)
+
+[Number of minor intron genes in top N DTU genes](plots/topN_MI_DTU.pdf)
+
+[Number of minor intron transcripts in top N DTU transcripts](plots/topN_MI_DTU_tx.pdf)
 
 ### Gene set testing based on transcript-level DTU results
 
