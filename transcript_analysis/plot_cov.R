@@ -1,11 +1,10 @@
 # TO DO LIST ----
 # 1. add option in function for adding alignment track
-# 2. make short read heatmap
 
 ## DONE LIST ----
 # 1. add short read coverage
 # 2. inport Stephen's gene lists
-# 3. make heatmaps
+# 3. make long and short read heatmaps
 # 4. Select Stephen's highlighted genes
 
 # Start up ----
@@ -187,7 +186,7 @@ make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none",
       ggtitle(gene)
     print(p)
   } else {
-    dat <- mat[anno$transcript_id, ]
+    dat <- mat[anno$transcript_id[anno$transcript_id %in% rownames(mat)], ]
     anno_col <- data.frame(
       siRNA = rep(c("NT", "RNPC3"), each = 4)
     )
@@ -272,6 +271,11 @@ for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
+pdf("plots/list/minor_ir_heatmap_short.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"), mat = cpm.short)
+}
+dev.off()
 
 ## minor as ----
 ### extract lists ----
@@ -295,7 +299,11 @@ for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
-
+pdf("plots/list/minor_as_heatmap_short.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"), mat = cpm.short)
+}
+dev.off()
 ## ir_finder ----
 ### extract lists ----
 ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
@@ -324,6 +332,11 @@ for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
 }
 dev.off()
+pdf("plots/list/ir_finder_heatmap_short.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"), mat = cpm.short)
+}
+dev.off()
 
 ## Gene examples ----
 gene_examples <- xlsx::read.xlsx("../metadata/Gene examples and thoughts.xlsx", sheetIndex = 1)
@@ -336,6 +349,11 @@ dev.off()
 pdf("plots/list/gene_examples_heatmap.pdf")
 for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"))
+}
+dev.off()
+pdf("plots/list/gene_examples_heatmap_short.pdf")
+for(i in genes){
+  make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"), mat = cpm.short)
 }
 dev.off()
 
