@@ -157,7 +157,7 @@ Class "j" transcripts
 ```{r geneSetJ}
 fry(lcpm, x$genes$class_code=="j", design)
 barcodeplot(res$table$logFC, index = x$genes$class_code=="j",
-            main = "Transcript class n, targeted vs control")
+            main = "Transcript class j, targeted vs control")
 ```
 
 ## Differential transcript usage analysis
@@ -301,7 +301,7 @@ source("plot_cov.R")
 
 2. Compare results from long vs short read (roast gene set test, overlap etc.)
 
-3. GO/KEGG analysis (the `goana` and `kegga` functions are only available for gene level)
+3. Try to see what genes made replicate 4 outliers. Can try robust eBayes and check prior df.
 
 ## Session information
 ```{r sessionInfo}

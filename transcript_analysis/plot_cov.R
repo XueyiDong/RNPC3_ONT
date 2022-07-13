@@ -157,19 +157,26 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
 }
 
 # heatmap of DTU genes ----
-# use CPM
+# long read CPM
 counts <- read.delim("../bambu/out/counts_transcript.txt")
 rownames(counts) <- counts$TXNAME
 counts[, seq(4, 18, 2)] <- counts[, seq(4, 18, 2)] + counts[, seq(3, 17, 2)]
 counts <- counts[, -seq(3, 17, 2)]
 colnames(counts) <- gsub("_pass", "", colnames(counts))
 cpm <- cpm(counts[, c(-1, -2)], log=TRUE)
+# short read CPM
+counts.short <- readRDS("counts_short.RDS")
+cpm.short <- cpm(counts.short$counts / counts.short$annotation$Overdispersion, log = TRUE)
+colnames(cpm.short) <- paste(rep(c("NT", "RNPC3"), each = 4), rep(1:4, 2), sep = "_")
+# function
 make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none", 
-                             cluster_rows = TRUE, cluster_cols = FALSE){
+                             cluster_rows = TRUE, cluster_cols = FALSE, mat = cpm){
   anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
-  if(nrow(anno) == 1){
+  if(nrow(anno) == 0){
+    cat("Gene", gene, "not found!\n")
+  } else if(nrow(anno) == 1){
     cat("Gene", gene, "only have one transcript.\n")
-    dat <- cpm[anno$transcript_id, ]
+    dat <- mat[anno$transcript_id, ]
     dat <- data.frame(
       sample = names(dat),
       logCPM = dat,
@@ -180,11 +187,12 @@ make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none",
       ggtitle(gene)
     print(p)
   } else {
-    dat <- cpm[anno$transcript_id, ]
+    dat <- mat[anno$transcript_id, ]
     anno_col <- data.frame(
       siRNA = rep(c("NT", "RNPC3"), each = 4)
     )
-    rownames(anno_col) <- paste0("barcode0", 1:8)
+    # rownames(anno_col) <- paste0("barcode0", 1:8)
+    rownames(anno_col) <- colnames(dat)
     if(is.null(anno.row)){
       pheatmap(dat,
                cluster_rows = cluster_rows,
@@ -378,7 +386,8 @@ pdf("plots/test.pdf", width = 10)
 # par(mfrow=c(1, 2))
 plot_cov_genes2("TMEM80_1", cov_data = NULL, alignment_track = TRUE)
 # plot_cov_genes2("TMEM80_1", cov_data = "long")
-# make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
+make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"))
+make_gen_heatmap("TMEM80_1", c("isDTU", 'isDTE', "class_code"), mat=cpm.short)
 dev.off()
 
 test_rg <- gr %>% filter(gene_id=="TMEM80_1", type=="gene")
