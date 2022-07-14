@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 ## Prepare and load packages
@@ -43,6 +43,8 @@ DTE.intersect$gene <- tt.long$qry_gene_id[match(DTE.intersect$transcript, tt.lon
 DTE.intersect$logFC.long <- tt.long[DTE.intersect$transcript, "logFC"]
 DTE.intersect$logFC.short <- tt.short[DTE.intersect$transcript, "logFC"]
 DTE.intersect
+# check direction
+table(DTE.intersect$logFC.long > 0, DTE.intersect$logFC.short > 0)
 # Venn diagram of top 1000 DTEs
 DTE.top1000 <-list(
   long = tt.long$qry_id[1:1000],
@@ -59,7 +61,7 @@ index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
 index <- index[!is.na(match(index$Gene, tt.long$qry_id)),]
 test.res <- fry(lcpm.long, index, design)
 barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights = index$Weight,
-            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P value =", signig(test.res$PValue, 3)))
+            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signig(test.res$PValue, 3)))
 
 # Gene set testing and barcode plots, long tx in short data
 lcpm.short <- readRDS("lcpm.short.RDS")
@@ -68,6 +70,45 @@ index <- data.frame(Gene = tt.long$qry_id[tt.long$FDR < 0.05],
 index <- index[!is.na(match(index$Gene, tt.short$qry_id)),]
 test.res <- fry(lcpm.short, index, design)
 barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
-            main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P value =", signif(test.res$PValue, 3)))
+            main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
+```
+## Compare DTU results
+
+### Gene-level results
+
+```{r DTUgene}
+ts.long <- read.csv("results/DTU_gene_topSplice.csv", row.names = 1)
+ts.short <- read.csv("results_short/DTU_gene_topSplice.csv", row.names = 1)
+# Venn diagram of significant DTU gene
+DTU.genes <- list(
+  long = ts.long$qry_gene_id[ts.long$FDR < 0.05],
+  short = ts.short$qry_gene_id[ts.short$FDR < 0.05]
+)
+ggVennDiagram(DTU.genes) +
+  scale_fill_viridis()
+```
+### Transcript-level results
+
+```{r DTUtx}
+ts.tx.long <- read.csv("results/DTU_transcript_topSplice.csv", row.names = 1)
+ts.tx.short <- read.csv("results_short/DTU_transcript_topSplice.csv", row.names = 1)
+DTU.transcripts <- list(
+  long = ts.tx.long$qry_id[ts.tx.long$FDR < 0.05],
+  short = ts.tx.short$qry_id[ts.tx.short$FDR < 0.05]
+)
+# venn diagram
+ggVennDiagram(DTU.transcripts) +
+  scale_fill_viridis()
+# Check overlapped DTU transcripts
+DTU.intersect <- data.frame(
+  transcript = intersect(DTU.transcripts$long, DTU.transcripts$short)
+)
+DTU.intersect$gene <- ts.tx.long$qry_gene_id[match(DTU.intersect$transcript, ts.tx.long$qry_id)]
+DTU.intersect$logFC.long <- ts.tx.long[match(DTU.intersect$transcript, ts.tx.long$qry_id), "logFC"]
+DTU.intersect$logFC.short <- ts.tx.short[match(DTU.intersect$transcript, ts.tx.short$qry_id), "logFC"]
+DTU.intersect
+# check direction
+table(DTU.intersect$logFC.long > 0, DTU.intersect$logFC.short > 0)
+# barcode plot
 ```
 
