@@ -1,5 +1,6 @@
 # TO DO LIST ----
 # 1. add option in function for adding alignment track
+# 2. make heatmaps and maybe coverage plots for long vs short DTE/DTU results comparison
 
 ## DONE LIST ----
 # 1. add short read coverage

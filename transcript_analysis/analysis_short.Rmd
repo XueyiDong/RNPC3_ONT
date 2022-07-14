@@ -294,7 +294,6 @@ source("plot_cov.R")
 
 <!-- [Minor intron genes that are not DTE or DTU but containing class m, n or j transcripts](plots/cov_notSigMI_mnj.pdf) -->
 
-
 ## To do list
 
 1. Quality control plots

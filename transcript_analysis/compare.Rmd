@@ -1,0 +1,73 @@
+---
+title: "Compare long-read vs short-read results"
+author: "Xueyi Dong"
+date: '2022-07-13'
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Prepare and load packages
+```{r setup}
+library(edgeR)
+library(limma)
+library(ggplot2)
+library(dplyr)
+library(ggVennDiagram)
+library(viridis)
+```
+
+## Compare DTE results
+
+```{r DTE}
+tt.long <- read.csv("results/DE_topTags.csv", row.names = 1)
+tt.short <- read.csv("results_short/DE_topTags.csv", row.names = 1)
+# Venn diagram of significant DTEs
+DTE.transcripts <- list(
+  long = tt.long$qry_id[tt.long$FDR < 0.05],
+  short = tt.short$qry_id[tt.short$FDR < 0.05]
+)
+ggVennDiagram(DTE.transcripts) +
+  scale_fill_viridis()
+# Check overlapped DTE transcripts
+DTE.intersect <- data.frame(
+  transcript = intersect(DTE.transcripts$long, DTE.transcripts$short)
+)
+DTE.intersect$gene <- tt.long$qry_gene_id[match(DTE.intersect$transcript, tt.long$qry_id)]
+DTE.intersect$logFC.long <- tt.long[DTE.intersect$transcript, "logFC"]
+DTE.intersect$logFC.short <- tt.short[DTE.intersect$transcript, "logFC"]
+DTE.intersect
+# Venn diagram of top 1000 DTEs
+DTE.top1000 <-list(
+  long = tt.long$qry_id[1:1000],
+  short = tt.short$qry_id[1:1000]
+)
+ggVennDiagram(DTE.top1000) +
+  scale_fill_viridis()
+# Gene set testing and barcode plots, short tx in long data
+lcpm.long <- readRDS("lcpm.long.RDS")
+group <- rep(c("control", "targeted"), c(4, 4))
+design <- model.matrix(~group)
+index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
+                    Weight = tt.short$logFC[tt.short$FDR < 0.05])
+index <- index[!is.na(match(index$Gene, tt.long$qry_id)),]
+test.res <- fry(lcpm.long, index, design)
+barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights = index$Weight,
+            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P value =", signig(test.res$PValue, 3)))
+
+# Gene set testing and barcode plots, long tx in short data
+lcpm.short <- readRDS("lcpm.short.RDS")
+index <- data.frame(Gene = tt.long$qry_id[tt.long$FDR < 0.05],
+                    Weight = tt.long$logFC[tt.long$FDR < 0.05])
+index <- index[!is.na(match(index$Gene, tt.short$qry_id)),]
+test.res <- fry(lcpm.short, index, design)
+barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
+            main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P value =", signif(test.res$PValue, 3)))
+```
+
