@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 ## Prepare and load packages
-```{r setup}
+```{r setup2}
 library(edgeR)
 library(limma)
 library(ggplot2)
@@ -61,7 +61,7 @@ index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
 index <- index[!is.na(match(index$Gene, tt.long$qry_id)),]
 test.res <- fry(lcpm.long, index, design)
 barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights = index$Weight,
-            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signig(test.res$PValue, 3)))
+            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 
 # Gene set testing and barcode plots, long tx in short data
 lcpm.short <- readRDS("lcpm.short.RDS")
@@ -109,6 +109,13 @@ DTU.intersect$logFC.short <- ts.tx.short[match(DTU.intersect$transcript, ts.tx.s
 DTU.intersect
 # check direction
 table(DTU.intersect$logFC.long > 0, DTU.intersect$logFC.short > 0)
-# barcode plot
+# barcode plot, short tx in long data
+barcodeplot(ts.tx.long$logFC, index = na.omit(match(DTU.transcripts$short, ts.tx.long$qry_id)), 
+            gene.weights = ts.tx.short$logFC[match(DTU.transcripts$short[DTU.transcripts$short %in% ts.tx.long$qry_id], ts.tx.short$qry_id)],
+            main = "Short-read DTU transcripts in long-read data")
+# barcode plot, long tx in short data
+barcodeplot(ts.tx.short$logFC, index = na.omit(match(DTU.transcripts$long, ts.tx.short$qry_id)), 
+            gene.weights = ts.tx.long$logFC[match(DTU.transcripts$long[DTU.transcripts$long %in% ts.tx.short$qry_id], ts.tx.long$qry_id)],
+            main = "Long-read DTU transcripts in short-read data")
 ```
 
