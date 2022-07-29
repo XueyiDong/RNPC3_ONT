@@ -344,10 +344,10 @@ Due to high computation load, visualization was done in a separate script. notic
 ```{r saveGeneName}
 # save DTE gene names
 tt <- as.data.frame(tt)
-saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "DTEgenesMI.RDS")
-saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "DTEgenesNotMI.RDS")
-saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "DTUgenesMI.RDS")
-saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "DTUgenesNotMI.RDS")
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & tt$isMinorIntron]), "rds/DTEgenesMI.RDS")
+saveRDS(unique(tt$qry_gene_id[tt$FDR < 0.05 & !tt$isMinorIntron]), "rds/DTEgenesNotMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & ts$isMinorIntron]), "rds/DTUgenesMI.RDS")
+saveRDS(unique(ts$qry_gene_id[ts$FDR < 0.05 & !ts$isMinorIntron]), "rds/DTUgenesNotMI.RDS")
 ```
 
 ```{r txViz, eval=FALSE}

@@ -5,6 +5,7 @@ date: '2022-07-13'
 output:
   html_document:
     toc: true
+    toc_float: true
     toc_depth: 3
     code_folding: show
 ---
@@ -53,7 +54,7 @@ DTE.top1000 <-list(
 ggVennDiagram(DTE.top1000) +
   scale_fill_viridis()
 # Gene set testing and barcode plots, short tx in long data
-lcpm.long <- readRDS("lcpm.long.RDS")
+lcpm.long <- readRDS("rds/lcpm.long.RDS")
 group <- rep(c("control", "targeted"), c(4, 4))
 design <- model.matrix(~group)
 index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
@@ -64,7 +65,7 @@ barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights
             main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 
 # Gene set testing and barcode plots, long tx in short data
-lcpm.short <- readRDS("lcpm.short.RDS")
+lcpm.short <- readRDS("rds/lcpm.short.RDS")
 index <- data.frame(Gene = tt.long$qry_id[tt.long$FDR < 0.05],
                     Weight = tt.long$logFC[tt.long$FDR < 0.05])
 index <- index[!is.na(match(index$Gene, tt.short$qry_id)),]
@@ -72,6 +73,7 @@ test.res <- fry(lcpm.short, index, design)
 barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
             main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 ```
+
 ## Compare DTU results
 
 ### Gene-level results
@@ -87,6 +89,7 @@ DTU.genes <- list(
 ggVennDiagram(DTU.genes) +
   scale_fill_viridis()
 ```
+
 ### Transcript-level results
 
 ```{r DTUtx}
@@ -117,5 +120,10 @@ barcodeplot(ts.tx.long$logFC, index = na.omit(match(DTU.transcripts$short, ts.tx
 barcodeplot(ts.tx.short$logFC, index = na.omit(match(DTU.transcripts$long, ts.tx.short$qry_id)), 
             gene.weights = ts.tx.long$logFC[match(DTU.transcripts$long[DTU.transcripts$long %in% ts.tx.short$qry_id], ts.tx.long$qry_id)],
             main = "Long-read DTU transcripts in short-read data")
+```
+
+## Session information
+```{r sessionInfo}
+sessionInfo()
 ```
 

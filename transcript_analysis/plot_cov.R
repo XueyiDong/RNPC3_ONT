@@ -18,8 +18,8 @@ library(pheatmap)
 gff <- "../bambu/out/extended_annotations.genes.edited.gtf"
 gr <- read_gff(gff, genome_info = "CHM13v2")
 # parts <- collect_parts(gr)
-# saveRDS(parts, "complete_annotation.rds")
-parts <- readRDS("complete_annotation.rds")
+# saveRDS(parts, "rds/complete_annotation.rds")
+parts <- readRDS("rds/complete_annotation.rds")
 
 # design for long read ----
 bam_dir = "../aligned_minimap2"
@@ -31,8 +31,8 @@ design <- data.frame(
 )
 # compute coverage for long read ----
 # cvg <- compute_coverage_long(design, source="Bam")
-# saveRDS(cvg, "complete_coverage.rds")
-cvg <- readRDS("complete_coverage.rds")
+# saveRDS(cvg, "rds/complete_coverage.rds")
+cvg <- readRDS("rds/complete_coverage.rds")
 
 # design for short read ----
 bam_short_dir = "/stornext/General/data/user_managed/grpu_mritchie_1/Mei/intron/bam"
@@ -44,8 +44,8 @@ design.short <- data.frame(
 )
 # compute coverage for short read ----
 # cvg.short <- compute_coverage_long(design.short, source="Bam")
-# saveRDS(cvg.short, "complete_coverage_short.RDS")
-cvg.short <- readRDS("complete_coverage_short.RDS")
+# saveRDS(cvg.short, "rds/complete_coverage_short.RDS")
+cvg.short <- readRDS("rds/complete_coverage_short.RDS")
 
 # transform intron coord into new version----
 # write minor intron information into bed format
@@ -165,7 +165,7 @@ counts <- counts[, -seq(3, 17, 2)]
 colnames(counts) <- gsub("_pass", "", colnames(counts))
 cpm <- cpm(counts[, c(-1, -2)], log=TRUE)
 # short read CPM
-counts.short <- readRDS("counts_short.RDS")
+counts.short <- readRDS("rds/counts_short.RDS")
 cpm.short <- cpm(counts.short$counts / counts.short$annotation$Overdispersion, log = TRUE)
 colnames(cpm.short) <- paste(rep(c("NT", "RNPC3"), each = 4), rep(1:4, 2), sep = "_")
 # function
@@ -362,7 +362,7 @@ dev.off()
 genes <- list()
 for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
   cat("Working on", i, ".\n")
-  genes[[i]] <- readRDS(paste0(i, ".RDS"))
+  genes[[i]] <- readRDS(paste0("rds/"i, ".RDS"))
   pdf(paste0("plots/cov_", i, "2.pdf"))
   for(j in genes[[i]]){
     plot_cov_genes2(j)
