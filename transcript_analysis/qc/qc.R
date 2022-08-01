@@ -39,13 +39,13 @@ read.stat <- data.frame(
   sample = rep(paste(rep(c("NT", "RNPC3"), each = 4), rep(1:4, 2), sep = "-"), 2),
   raw_reads = c(21460386+7649032, 32984104+12383754, 27061720+10829457, 28627983+11681329, 28141261+9703764, 26939112+10246879, 29952450+11023531, 24600719+11215100,
                 58963456, 40652346, 74909438, 33936801, 72561084, 75934404, 70456874, 53348132),
-  # wait until slurm job finish: samtools flagstat
-  mapped_reads = c(),
+  # mapped_reads = c(18948958+4369497, 27968074+6417123, 22410004+5199474, 24569023+5743348, 24859748+5647440, 24050590+5700168, 26030588+5913487, 20093397+4699682,
+  #                  27495741, 18453726, 34247708, 15494205, 32423391, 34238487, 32054224, 22274216),
   read_counts = c(dge$samples$lib.size, colSums(counts.short$counts)),
   dataset = rep(c("ONT", "Illumina"), c(8,8))
 )
 
-read.stat <- data.table::melt(read.stat, id.vars = c("sample", "dataset"))
+read.stat <- reshape2::melt(read.stat, id.vars = c("sample", "dataset"))
 # read num plot
 pdf("plots/readNum.pdf", height = 6, width = 6)
 ggplot(read.stat, aes(x=variable, y=value, fill=sample, label = value))+
@@ -57,7 +57,7 @@ ggplot(read.stat, aes(x=variable, y=value, fill=sample, label = value))+
   theme_bw() +
   theme(text = element_text(size = 20), axis.text.x = element_text(angle = 30, hjust = 1)) +
   scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))+
-  scale_fill_manual(values = met.brewer("Troy", 6))
+  scale_fill_manual(values = met.brewer("Troy", 8))
 dev.off()
 
 # DISREGARD BELOW PARTS! ----
