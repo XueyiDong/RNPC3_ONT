@@ -53,14 +53,57 @@ library(Glimma)
 library(ggplot2)
 library(superintronic)
 suppressPackageStartupMessages(library(plyranges))
+library(dplyr)
 ```
 
 ```{r load_data}
 counts <- read.delim("../bambu/out/counts_transcript.txt")
+isoClass <- read.delim("../bambu/sqanti_out/extended_annotations.genes.edited_classification.txt")
 rownames(counts) <- counts$TXNAME
 tmap <- read.delim("../bambu/out/bambu_comp.extended_annotations.gtf.tmap")
 mi_gene <- xlsx::read.xlsx("../HomoSapiens_IntronInfo.xlsx", sheetIndex = 1)
 ```
+
+## Isoform classification
+
+```{r isoClass}
+isoClass$count <- rowSums(counts[,c(-1, -2)])[match(isoClass$isoform, counts$TXNAME)]
+# check number of zero count isoforms
+table(isoClass$count == 0)
+# check number of low count isoforms
+table(isoClass$count < 10)
+isoClass$structural_category[isoClass$structural_category %in% c("genic", "genic_intron", "intergenic")] <- "genic/intergenic"
+isoClass$structural_category <- factor(isoClass$structural_category, levels =c("full-splice_match", "incomplete-splice_match", "novel_in_catalog", "novel_not_in_catalog", "genic/intergenic", "fusion", "antisense"))
+plot_isoClass
+```
+
+```{r isoClassPlot}
+col.category <- RColorBrewer::brewer.pal(nlevels(isoClass$structural_category), "Set1")
+plot_isoformClass <-
+  ggplot(isoClass, aes(x = structural_category, fill=structural_category)) + 
+  geom_bar() +
+  theme_bw() +
+  # geom_hline(yintercept = 164, linetype="dashed") +
+  labs(y = "Number of transcripts", x = "Structural category", fill = "Structural category") +
+  theme(text = element_text(size = 20), legend.position = "none",
+        axis.text.x = element_text(angle = 30, hjust=1)) +
+  scale_fill_manual(values = col.category) +
+  scale_y_continuous(labels = scales::comma)
+print(plot_isoformClass)
+
+plot_isoformCount <-
+  isoClass %>% dplyr::count(structural_category, wt = count, name = "count") %>% 
+  ggplot() +
+  geom_bar(aes(x=structural_category, y=count, fill=structural_category), stat = "identity") +
+  labs(y = "Read count", x = "Structural category", fill = "Structural category") +
+  theme_bw() +
+  theme(text = element_text(size = 20), legend.position = "none",
+        axis.text.x = element_text(angle = 30, hjust = 1)) +
+  scale_fill_manual(values = col.category) +
+  scale_y_continuous(labels = scales::unit_format(unit = "M", scale = 1e-6))
+print(plot_isoformCount)
+```
+
 
 ## minor intron gene analysis
 

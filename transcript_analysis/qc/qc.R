@@ -57,7 +57,80 @@ ggplot(read.stat, aes(x=variable, y=value, fill=sample, label = value))+
   theme_bw() +
   theme(text = element_text(size = 20), axis.text.x = element_text(angle = 30, hjust = 1)) +
   scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))+
-  scale_fill_manual(values = met.brewer("Troy", 8))
+  scale_fill_manual(values = met.brewer("Tiepolo", 8))
+dev.off()
+
+# quantification correlation matrix heatmap by biotype-------
+## use raw count -----
+m <- match(rownames(dge.short), rownames(dge))
+table(is.na(m))
+dge.all <- DGEList(counts = cbind(dge$counts[m,], dge.short$counts))
+dge.all$samples$group <- rep(c("control_long", "targeted_long", "control_short", "targeted_short"), each = 4)
+filt <- filterByExpr(dge.all)
+dge.all <- dge.all[filt,]
+dge.all$genes <- dge.short$genes[match(rownames(dge.all), rownames(dge.short)),]
+colnames(dge.all$genes)[3] <- "Overdispersion.short"
+cormat <- cor(dge.all$counts)
+library(pheatmap)
+anno <- data.frame(
+  group = rep(rep(c("NT", "RNPC3"), c(4, 4)), 2),
+  dataset = rep(c("ONT", "Illumina"), c(8, 8))
+)
+anno_colours = list(
+  group = c(NT = "#8b3a2b", RNPC3 = "#235070"),
+  dataset = c(ONT = "#438DAC", Illumina = "#FCB344")
+)
+rownames(anno) <- rownames(cormat)
+pheatmap(cormat,
+         cluster_cols = FALSE,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         show_rownames = FALSE,
+         annotation_col = anno,
+         annotation_row = anno,
+         annotation_colors = anno_colours,
+         scale = "none",
+         display_numbers = TRUE
+)
+
+
+# long vs short quantification------
+# long CPM vs short TPM
+# filter
+# cpm.long <- dge[filterByExpr(dge),] %>% calcNormFactors %>% cpm
+cpm.long <- cpm(dge.all[, 1:8])
+tpm3 <- function(counts,len) {
+  x <- counts/len
+  return(t(t(x)*1e6/colSums(x)))
+}
+# tpm.short <- dge.short[filterByExpr(dge.short),] %>% calcNormFactors %>% {tpm3(.[["counts"]], .[["genes"]][,"Length"])}
+tpm.short <- tpm3(dge.all$counts[,9:16], dge.all$genes$Length)
+# m <- match(rownames(dge.short), rownames(dge))
+quant <- data.frame(
+  TPM_short = c(log(rowMeans(tpm.short[, 1:4]) + 0.5),
+                log(rowMeans(tpm.short[, 5:8]) + 0.5)),
+  CPM_long = c(log(rowMeans(cpm.long[, 1:4]) + 0.5),
+               log(rowMeans(cpm.long[, 5:8]) + 0.5)),
+  group = rep(c("NT", "RNPC3"), rep(nrow(tpm.short), 2))
+)
+# quant <- na.omit(quant)
+
+# correlation
+cor(quant$TPM_short, quant$CPM_long)
+cor(quant$TPM_short[quant$group=="NT"], quant$CPM_long[quant$group=="NT"])
+cor(quant$TPM_short[quant$group=="RNPC3"], quant$CPM_long[quant$group=="RNPC3"])
+pdf("plots/longVsShortQuant.pdf", height = 8, width = 9)
+ggplot(quant, aes(x = CPM_long, y = TPM_short))+
+  stat_binhex(bins=100) +
+  scale_fill_viridis(trans = "log10", option = "A")+
+  annotate(geom="text", x=3, y=12,
+           label=paste0("Pearson's r=", round(cor(quant$TPM_short, quant$CPM_long), 3)),
+           size=7)+
+  labs(x = expression("log"[2]*"CPM ONT read counts"),
+       y = expression("log"[2]*"TPM Illumina read counts")
+  ) +
+  theme_bw() +
+  theme(text=element_text(size = 20))
 dev.off()
 
 # DISREGARD BELOW PARTS! ----
@@ -89,7 +162,7 @@ dge.human$genes$biotype[dge.human$genes$biotype %in% c("miRNA", "misc_RNA",
                                                        "tRNA", "vault_RNA", "scRNA",
                                                        "sRNA", "Mt_rRNA", "Mt_tRNA",
                                                        "ribozyme"
-                                                       )] <- "ncRNA"
+)] <- "ncRNA"
 saveRDS(dge.human$genes, "txInfo.long.RDS")
 
 # for each sample
@@ -137,11 +210,11 @@ dge.short.human$genes$biotype[grepl("pseudogene$", dge.short.human$genes$biotype
 dge.short.human$genes$biotype[grepl("^TR", dge.short.human$genes$biotype)] <- "IG_or_TR_gene"
 dge.short.human$genes$biotype[grepl("^IG", dge.short.human$genes$biotype)] <- "IG_or_TR_gene"
 dge.short.human$genes$biotype[dge.short.human$genes$biotype %in% c("miRNA", "misc_RNA", 
-                                                       "piRNA", "rRNA", "siRNA",
-                                                       "snRNA", "snoRNA", "scaRNA",
-                                                       "tRNA", "vault_RNA", "scRNA",
-                                                       "sRNA", "Mt_rRNA", "Mt_tRNA",
-                                                       "ribozyme"
+                                                                   "piRNA", "rRNA", "siRNA",
+                                                                   "snRNA", "snoRNA", "scaRNA",
+                                                                   "tRNA", "vault_RNA", "scRNA",
+                                                                   "sRNA", "Mt_rRNA", "Mt_tRNA",
+                                                                   "ribozyme"
 )] <- "ncRNA"
 saveRDS(dge.short.human$genes, "txInfo.short.RDS")
 
@@ -185,85 +258,15 @@ ggplot(biotype_sum.all, aes(x=sample, y=total_count, fill=factor(biotype, levels
   theme_bw() +
   theme(text = element_text(size = 20), 
         axis.text.x = element_text(angle = 45, hjust = 1),
-        ) +
+  ) +
   scale_fill_brewer(palette = "Set3") +
   labs(fill = "Transcript biotype", x = "Sample", y = "Proportion of count")
 dev.off()
 
-# long vs short quantification------
-# long CPM vs short TPM
-# filter
-dge.pure <- dge[,1:6]
-dge.pure$samples$group <- rep(c("H1975", "HCC827"), c(3, 3))
-dge.pure <- dge.pure[filterByExpr(dge.pure),] %>% calcNormFactors
-cpm.long <- cpm(dge.pure)
 
-dge.short.pure <- dge.short[,1:6]
-dge.short.pure$samples$group <- rep(c("H1975", "HCC827"), c(3, 3))
-dge.short.pure <- dge.short.pure[filterByExpr(dge.short.pure), ]%>% calcNormFactors
-tpm3 <- function(counts,len) {
-  x <- counts/len
-  return(t(t(x)*1e6/colSums(x)))
-}
-tpm.short <- tpm3(dge.short.pure$counts, dge.short.pure$genes$Length)
-m <- match(rownames(dge.short.pure), rownames(dge.pure))
-quant <- data.frame(
-  TPM_short = c(log(rowMeans(tpm.short[, 1:3]) + 0.5),
-                log(rowMeans(tpm.short[, 4:6]) + 0.5)),
-  CPM_long = c(log(rowMeans(cpm.long[, 1:3]) + 0.5)[m],
-               log(rowMeans(cpm.long[, 4:6]) + 0.5)[m]),
-  group = rep(c("H1975", "HCC827"), rep(nrow(tpm.short), 2))
-)
-quant <- na.omit(quant)
-# correlation
-cor(quant$TPM_short, quant$CPM_long)
-cor(quant$TPM_short[quant$group=="H1975"], quant$CPM_long[quant$group=="H1975"])
-cor(quant$TPM_short[quant$group=="HCC827"], quant$CPM_long[quant$group=="HCC827"])
-pdf("plots/longVsShortQuant.pdf", height = 8, width = 9)
-ggplot(quant, aes(x = CPM_long, y = TPM_short))+
-  stat_binhex(bins=100) +
-  scale_fill_viridis(trans = "log10", option = "A")+
-  annotate(geom="text", x=3, y=12,
-           label=paste0("Pearson's r=", round(cor(quant$TPM_short, quant$CPM_long), 3)),
-           size=7)+
-  labs(x = expression("log"[2]*"CPM ONT read counts"),
-       y = expression("log"[2]*"TPM Illumina read counts")
-  ) +
-  theme_bw() +
-  theme(text=element_text(size = 20))
-dev.off()
+
 
 # quantification correlation matrix heatmap by biotype-------
-## use raw count -----
-m <- match(rownames(dge.short), rownames(dge))
-table(is.na(m))
-dge.all <- DGEList(counts = cbind(dge$counts[m, 1:6], dge.short$counts[, 1:6]))
-dge.all$samples$group <- rep(c("H1975_long", "HCC827_long", "H1975_short", "HCC827_short"), c(3, 3, 3, 3))
-filt <- filterByExpr(dge.all)
-dge.all <- dge.all[filt,]
-dge.all$genes <- dge.short$genes[match(rownames(dge.all), rownames(dge.short)),]
-cormat <- cor(dge.all$counts)
-library(pheatmap)
-anno <- data.frame(
-  cell_type = rep(rep(c("H1975", "HCC827"), c(3, 3)), 2),
-  dataset = rep(c("ONT", "Illumina"), c(6, 6))
-)
-anno_colours = list(
-  cell_type = c(H1975 = "#8b3a2b", HCC827 = "#235070"),
-  dataset = c(ONT = "#438DAC", Illumina = "#FCB344")
-)
-rownames(anno) <- rownames(cormat)
-pheatmap(cormat,
-         cluster_cols = FALSE,
-         cluster_rows = FALSE,
-         show_colnames = FALSE,
-         show_rownames = FALSE,
-         annotation_col = anno,
-         annotation_row = anno,
-         annotation_colors = anno_colours,
-         scale = "none",
-         display_numbers = TRUE
-         )
 ## use long cpm vs short tpm----
 ### all----
 cpm <- cpm(dge.all[, 1:6])
@@ -420,6 +423,10 @@ pheatmap(cormat.tx5,
          fontsize_number = 12
 )
 dev.off()
+
+
+
+
 
 # length bias plot--------------------
 dge.pure$genes$totalCount <- rowSums(dge.pure$counts)

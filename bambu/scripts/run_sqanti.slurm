@@ -23,9 +23,11 @@ export PYTHONPATH=$PYTHONPATH:~/Programs/cDNA_Cupcake/sequence/
 export PYTHONPATH=$PYTHONPATH:~/Programs/cDNA_Cupcake/
 
 python ~/Programs/SQANTI3-5.0/sqanti3_qc.py \
-$BAMUB_OUT/extended_annotations.edited.gtf \
+$BAMUB_OUT/extended_annotations.genes.edited.gtf \
 $ANNO_DIR/GCF_009914755.1_T2T-CHM13v2.0_genomic.gtf \
 $ANNO_DIR/GCF_009914755.1_T2T-CHM13v2.0_genomic.fna \
---cpus 16 -c ./STAR_mapping --short_reads ../scripts/short_read.fofn > sqanti3_qc.out  
+# --cpus 16 -c ./STAR_mapping --skipORF > sqanti3_qc.out 
+--cpus 16 -c ./STAR_mapping > sqanti3_qc.out 
+# --short_reads ../scripts/short_read.fofn > sqanti3_qc.out  
 #--short_reads ../scripts/short_read.fofn > sqanti3_qc.out
 
