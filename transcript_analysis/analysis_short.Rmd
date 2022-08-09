@@ -77,6 +77,12 @@ x <- x[filt, ]
 x <- calcNormFactors(x)
 x$samples
 glimmaMDS(x)
+pdf("plots/shortDTE/MDS.pdf", height = 5, width = 8)
+lcpm <- cpm(x, log=TRUE)
+plotMDS(lcpm,
+        col = rep(c("#c06636", "#646e3b"), each = 4),
+        label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"))
+dev.off()
 ```
 
 On the MDS plot, sample NT_4 and RNPC3_4 performed slightly different from other samples. Similar situation were also observed in our long-read data.
@@ -87,10 +93,16 @@ On the MDS plot, sample NT_4 and RNPC3_4 performed slightly different from other
 design <- model.matrix(~x$samples$group)
 x <- estimateDisp(x, design)
 plotBCV(x)
+pdf("plots/shortDTE/BCV.pdf", height = 5, width = 8)
+plotBCV(x)
+dev.off()
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
 plotMD(res, main = "RNPC3-targeted vs NT")
+pdf("plots/shortDTE/MD.pdf", height = 5, width = 8)
+plotMD(res, main = "short-read RNPC3-targeted vs NT")
+dev.off()
 # number of DE transcripts
 summary(decideTestsDGE(res))
 # top DE transcripts

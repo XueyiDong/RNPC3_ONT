@@ -195,7 +195,7 @@ x <- x[filt, ]
 x <- calcNormFactors(x)
 x$samples
 glimmaMDS(x)
-pdf("plots/MDS_long.pdf", height = 5, width = 8)
+pdf("plots/longDTE/MDS.pdf", height = 5, width = 8)
 lcpm <- cpm(x, log=TRUE)
 plotMDS(lcpm,
         col = rep(c("#c06636", "#646e3b"), each = 4),
@@ -211,10 +211,16 @@ On the MDS plot, samples from different groups are separated on dimension 2.
 design <- model.matrix(~x$samples$group)
 x <- estimateDisp(x, design)
 plotBCV(x)
+pdf("plots/longDTE/BCV.pdf", height = 5, width = 8)
+plotBCV(x)
+dev.off()
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
 plotMD(res, main = "RNPC3-targeted vs NT")
+pdf("plots/longDTE/MD.pdf", height = 5, width = 8)
+plotMD(res, main = "long-read RNPC3-targeted vs NT")
+dev.off()
 # number of DE transcripts
 summary(decideTestsDGE(res))
 # top DE transcripts
@@ -233,7 +239,7 @@ top_n_mi <- function(ts){
   return(res)
 }
 topN.tt <- top_n_mi(as.data.frame(tt))
-pdf("plots/topN_MI_DTE.pdf", height = 4)
+pdf("plots/longDTE/topN_MI_DTE.pdf", height = 4)
 ggplot(topN.tt, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -243,7 +249,7 @@ dev.off()
 
 [DE results table](results/DE_topTags.csv)
 
-[Number of minor intron genes in top N DE transcripts](plots/topN_MI_DTE.pdf)
+[Number of minor intron genes in top N DE transcripts](plots/longDTE/topN_MI_DTE.pdf)
 
 <!-- It may take a while to load the following interactive mean-difference plot.  -->
 
