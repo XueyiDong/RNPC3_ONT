@@ -6,6 +6,8 @@ qcdata <- as.data.frame(qcdata, stringsAsFactors = FALSE)
 qcdata$Read_length <- as.numeric(qcdata$Read_length)
 qcdata$Qscore <- as.numeric(qcdata$Qscore)
 qcdata$Barcode[!(qcdata$Barcode %in% c(paste0("barcode0", 1:8)))] <- "other"
+dim(qcdata)
+table(qcdata$Barcode)
 
 # qcdata.sub <- qcdata[1:1000, ]
 pdf("plots/LengthDistSample.pdf", height = 5, width = 8)

@@ -29,13 +29,45 @@ library(viridis)
 ```{r DTE}
 tt.long <- read.csv("results/DE_topTags.csv", row.names = 1)
 tt.short <- read.csv("results_short/DE_topTags.csv", row.names = 1)
+# long vs short F
+F <- data.frame(
+  f.long = tt.long$F,
+  f.short = tt.short$F[match(rownames(tt.long), rownames(tt.short))],
+  logFC.long = tt.long$logFC,
+  logFC.short = tt.short$logFC[match(rownames(tt.long), rownames(tt.short))]
+)
+F <- na.omit(F)
+plot.f <- ggplot(F, aes(x=f.long, y=f.short)) +
+  stat_binhex(bins = 100) +
+  scale_fill_viridis() +
+  theme_bw() +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "ONT long-read F", y = "Illumina short-read F")
+print(plot.f)
+
+cor(F$f.long, F$f.short)
+
+plot.logFC <- ggplot(F, aes(x=logFC.long, y=logFC.short)) +
+  stat_binhex(bins = 100) +
+  scale_fill_viridis() +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  labs(x = "ONT long-read logFC", y = "Illumina short-read logFC")
+print(plot.logFC)
+
+cor(F$logFC.long, F$logFC.short)
+
 # Venn diagram of significant DTEs
 DTE.transcripts <- list(
   long = tt.long$qry_id[tt.long$FDR < 0.05],
   short = tt.short$qry_id[tt.short$FDR < 0.05]
 )
-ggVennDiagram(DTE.transcripts) +
+venn.DTE <- ggVennDiagram(DTE.transcripts) +
   scale_fill_viridis()
+print(venn.DTE)
+
 # Check overlapped DTE transcripts
 DTE.intersect <- data.frame(
   transcript = intersect(DTE.transcripts$long, DTE.transcripts$short)
@@ -51,8 +83,10 @@ DTE.top1000 <-list(
   long = tt.long$qry_id[1:1000],
   short = tt.short$qry_id[1:1000]
 )
-ggVennDiagram(DTE.top1000) +
+venn.DTEtop1000 <- ggVennDiagram(DTE.top1000) +
   scale_fill_viridis()
+print(venn.DTEtop1000)
+
 # Gene set testing and barcode plots, short tx in long data
 lcpm.long <- readRDS("rds/lcpm.long.RDS")
 group <- rep(c("control", "targeted"), c(4, 4))
@@ -73,6 +107,40 @@ test.res <- fry(lcpm.short, index, design)
 barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
             main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 ```
+
+```{r DTEpdf}
+pdf("plots/compare/F.pdf", height = 5, width = 8)
+print(plot.f)
+dev.off()
+
+pdf("plots/compare/logFC.pdf", height  = 5, width = 8)
+print(plot.logFC)
+dev.off()
+
+pdf("plots/compare/DTEvenn.pdf", height = 5, width = 8)
+print(venn.DTE)
+dev.off()
+
+pdf("plots/compare/DTEvennTop1000.pdf", height = 5, width = 8)
+print(venn.DTEtop1000)
+dev.off()
+
+pdf("plots/compare/DTEbarcode.pdf", height = 5, width = 8)
+index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
+                    Weight = tt.short$logFC[tt.short$FDR < 0.05])
+index <- index[!is.na(match(index$Gene, tt.long$qry_id)),]
+test.res <- fry(lcpm.long, index, design)
+barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights = index$Weight,
+            main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
+index <- data.frame(Gene = tt.long$qry_id[tt.long$FDR < 0.05],
+                    Weight = tt.long$logFC[tt.long$FDR < 0.05])
+index <- index[!is.na(match(index$Gene, tt.short$qry_id)),]
+test.res <- fry(lcpm.short, index, design)
+barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
+            main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
+dev.off()
+```
+
 
 ## Compare DTU results
 

@@ -81,7 +81,8 @@ pdf("plots/shortDTE/MDS.pdf", height = 5, width = 8)
 lcpm <- cpm(x, log=TRUE)
 plotMDS(lcpm,
         col = rep(c("#c06636", "#646e3b"), each = 4),
-        label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"))
+        label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"),
+        main = "short-read MDS plot")
 dev.off()
 ```
 
