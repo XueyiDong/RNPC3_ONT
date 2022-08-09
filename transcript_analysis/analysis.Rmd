@@ -54,6 +54,7 @@ library(ggplot2)
 library(superintronic)
 suppressPackageStartupMessages(library(plyranges))
 library(dplyr)
+library(cowplot)
 ```
 
 ```{r load_data}
@@ -74,14 +75,13 @@ table(isoClass$count == 0)
 table(isoClass$count < 10)
 isoClass$structural_category[isoClass$structural_category %in% c("genic", "genic_intron", "intergenic")] <- "genic/intergenic"
 isoClass$structural_category <- factor(isoClass$structural_category, levels =c("full-splice_match", "incomplete-splice_match", "novel_in_catalog", "novel_not_in_catalog", "genic/intergenic", "fusion", "antisense"))
-plot_isoClass
 ```
 
 ```{r isoClassPlot}
 col.category <- RColorBrewer::brewer.pal(nlevels(isoClass$structural_category), "Set1")
 plot_isoformClass <-
-  ggplot(isoClass, aes(x = structural_category, fill=structural_category)) + 
-  geom_bar() +
+  isoClass %>% filter(count >= 10) %>% ggplot() +
+  geom_bar(aes(x = structural_category, fill=structural_category)) +
   theme_bw() +
   # geom_hline(yintercept = 164, linetype="dashed") +
   labs(y = "Number of transcripts", x = "Structural category", fill = "Structural category") +
@@ -92,7 +92,7 @@ plot_isoformClass <-
 print(plot_isoformClass)
 
 plot_isoformCount <-
-  isoClass %>% dplyr::count(structural_category, wt = count, name = "count") %>% 
+  isoClass %>% filter(count >= 10) %>%  dplyr::count(structural_category, wt = count, name = "count") %>% 
   ggplot() +
   geom_bar(aes(x=structural_category, y=count, fill=structural_category), stat = "identity") +
   labs(y = "Read count", x = "Structural category", fill = "Structural category") +
@@ -103,6 +103,24 @@ plot_isoformCount <-
   scale_y_continuous(labels = scales::unit_format(unit = "M", scale = 1e-6))
 print(plot_isoformCount)
 ```
+
+```{r makeIsoformPlot, echo=false, eval=false}
+pdf("plots/isoformClass.pdf", width = 16, height = 6)
+plot_grid(plot_isoformClass, plot_isoformCount,
+          labels = c("a", "b"), label_size = 20)
+dev.off()
+```
+
+<!-- ## Short-read junction count -->
+
+<!-- ```{r juncValid} -->
+<!-- junc_count <- read.delim("../bambu/sqanti_out/extended_annotations.genes.edited_junctions.txt") -->
+<!-- junc_count$structural_category <- isoClass$structural_category[match(junc_count$isoform, isoClass$isoform)] -->
+<!-- junc_count -->
+<!-- junc_no_dunp <- junc_count %>%  -->
+<!--   mutate(junction = paste(chrom, genomic_start_coord, genomic_end_coord, sep = "_")) %>%  -->
+<!--   filter(!duplicated(junction)) -->
+<!-- ``` -->
 
 
 ## minor intron gene analysis
@@ -177,6 +195,12 @@ x <- x[filt, ]
 x <- calcNormFactors(x)
 x$samples
 glimmaMDS(x)
+pdf("plots/MDS_long.pdf", height = 5, width = 8)
+lcpm <- cpm(x, log=TRUE)
+plotMDS(lcpm,
+        col = rep(c("#c06636", "#646e3b"), each = 4),
+        label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"))
+dev.off()
 ```
 
 On the MDS plot, samples from different groups are separated on dimension 2.
@@ -412,7 +436,7 @@ source("plot_cov.R")
 
 1. Quality control plots for this data set
 
-2. Short read Salmon + DTE/DTU analysis
+
 
 3. GO/KEGG analysis (the `goana` and `kegga` functions are only available for gene level)
 

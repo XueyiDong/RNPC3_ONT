@@ -23,4 +23,4 @@ for (i in 1:length(rds)){
   summaryInfo <- rbind(summaryInfo, tmp)
   rm(tmp)
 }
-saveRDS(summaryInfo, "rds/summaryInfoRDS")
+saveRDS(summaryInfo, "rds/summaryInfo.RDS")
