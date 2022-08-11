@@ -23,4 +23,8 @@ for (i in 1:length(rds)){
   summaryInfo <- rbind(summaryInfo, tmp)
   rm(tmp)
 }
+summaryInfo <- as.data.frame(summaryInfo, stringsAsFactors = FALSE)
+summaryInfo$Read_length <- as.numeric(summaryInfo$Read_length)
+summaryInfo$Qscore <- as.numeric(summaryInfo$Qscore)
+summaryInfo$Barcode[!(summaryInfo$Barcode %in% c(paste0("barcode0", 1:8)))] <- "other"
 saveRDS(summaryInfo, "rds/summaryInfo.RDS")

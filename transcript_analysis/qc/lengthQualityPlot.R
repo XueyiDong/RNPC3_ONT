@@ -1,10 +1,6 @@
 library(ggplot2)
 
 qcdata <- readRDS("./rds/summaryInfo.RDS")
-qcdata <- as.data.frame(qcdata, stringsAsFactors = FALSE)
-qcdata$Read_length <- as.numeric(qcdata$Read_length)
-qcdata$Qscore <- as.numeric(qcdata$Qscore)
-qcdata$Barcode[!(qcdata$Barcode %in% c(paste0("barcode0", 1:8)))] <- "other"
 qcdata.filt <- qcdata[qcdata$Barcode != "other", ]
 maxLength = max(qcdata.filt$Read_length)
 maxLength
@@ -16,7 +12,11 @@ qcdata.filt$LengthGroup <- factor(qcdata.filt$LengthGroup, levels = c(
   "[0, 500)", "[500, 1000)", "[1000, 2000)", paste0("[2000, ", maxLength, "]")
 ))
 
-stat_box_data <- function(y, upper_limit = max(qcdata$Qscore) * 1.15) {
+qLim <- quantile(qcdata$Qscore, 0.9999)
+qLim
+
+# stat_box_data <- function(y, upper_limit = max(qcdata$Qscore) * 1.15) {
+stat_box_data <- function(y, upper_limit = qLim * 1.15) {
   return( 
     data.frame(
       y = 0.95 * upper_limit,
@@ -30,6 +30,7 @@ ggplot(qcdata.filt, aes(x=LengthGroup, y=Qscore, fill=LengthGroup, colour = Leng
   geom_violin(alpha = 0.4) +
   geom_boxplot(width = 0.2, outlier.colour = NA, alpha = 0) +
   theme_bw() +
+  ylim(c(NA, qLim * 1.15)) +
   labs(x = "Read length")+
   stat_summary(
     fun.data = stat_box_data, 

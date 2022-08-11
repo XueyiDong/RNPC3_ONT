@@ -5,6 +5,7 @@ library(scales)
 library(RColorBrewer)
 library(tidyverse)
 library(cowplot)
+library(viridis)
 
 # DIR="/stornext/General/data/user_managed/grpu_mritchie_1/XueyiDong/long_read_benchmark"
 # load DGE lists
@@ -47,7 +48,7 @@ read.stat <- data.frame(
 
 read.stat <- reshape2::melt(read.stat, id.vars = c("sample", "dataset"))
 # read num plot
-pdf("plots/readNum.pdf", height = 6, width = 6)
+pdf("plots/readNum.pdf", height = 5, width = 8)
 ggplot(read.stat, aes(x=variable, y=value, fill=sample, label = value))+
   geom_bar(stat="identity") +
   facet_grid(cols=vars(dataset)) +
@@ -119,7 +120,7 @@ quant <- data.frame(
 cor(quant$TPM_short, quant$CPM_long)
 cor(quant$TPM_short[quant$group=="NT"], quant$CPM_long[quant$group=="NT"])
 cor(quant$TPM_short[quant$group=="RNPC3"], quant$CPM_long[quant$group=="RNPC3"])
-pdf("plots/longVsShortQuant.pdf", height = 8, width = 9)
+pdf("plots/longVsShortQuant.pdf", height = 5, width = 8)
 ggplot(quant, aes(x = CPM_long, y = TPM_short))+
   stat_binhex(bins=100) +
   scale_fill_viridis(trans = "log10", option = "A")+
