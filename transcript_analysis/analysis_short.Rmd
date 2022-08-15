@@ -82,7 +82,7 @@ lcpm <- cpm(x, log=TRUE)
 plotMDS(lcpm,
         col = rep(c("#c06636", "#646e3b"), each = 4),
         label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"),
-        main = "short-read MDS plot")
+        main = "Illumina short-read MDS plot")
 dev.off()
 ```
 
@@ -95,14 +95,18 @@ design <- model.matrix(~x$samples$group)
 x <- estimateDisp(x, design)
 plotBCV(x)
 pdf("plots/shortDTE/BCV.pdf", height = 5, width = 8)
-plotBCV(x)
+plotBCV(x,
+        cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5,
+        main = "Illumina short-read BCV")
 dev.off()
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
 plotMD(res, main = "RNPC3-targeted vs NT")
 pdf("plots/shortDTE/MD.pdf", height = 5, width = 8)
-plotMD(res, main = "short-read RNPC3-targeted vs NT")
+plotMD(res, 
+       cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5,
+       main = "Illumina RNPC3-targeted vs NT")
 dev.off()
 # number of DE transcripts
 summary(decideTestsDGE(res))
@@ -147,6 +151,59 @@ lcpm <- cpm(x, log = TRUE)
 fry(lcpm, x$genes$isMinorIntron,design)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
             main = "Minor intron genes, targeted vs control")
+pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 8)
+barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
+            main = "Illumina minor intron genes, targeted vs control" ,
+            cex.lab = 1.8, cex.axis = 1.5, cex = 1.5)
+dev.off()
+```
+
+#### Other lists provided by Joan
+
+Extract table from pdf and add information to`x$genes`
+```{r geneLists}
+library(tabulizer)
+minor_ir <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 1)[[1]])
+colnames(minor_ir) <- minor_ir[1 ,]
+minor_ir <- minor_ir[-1, ]
+colnames(minor_ir)[6:10] <- colnames(minor_ir)[5:9]
+colnames(minor_ir)[4] <- "Coord start"
+colnames(minor_ir)[5] <- "Coord end"
+x$genes$isMinorIR <- x$genes$ref_gene_id %in% minor_ir$`Gene Name`
+
+minor_as <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 2)[[1]])
+colnames(minor_as) <- minor_as[1, ]
+minor_as <- minor_as[-1, ]
+minor_as <- minor_as[, -9]
+colnames(minor_as)[5:9] <- colnames(minor_as)[4:8]
+colnames(minor_as)[3] <- "Coord start" 
+colnames(minor_as)[4] <- "Coord end"
+minor_as$gene <- strsplit2(minor_as$`AS event – Gene ID – Gene Name`, "-")[,3]
+x$genes$isMinorAS <- x$genes$ref_gene_id %in% minor_as$gene
+
+ir_finder <- as.data.frame(extract_tables("../metadata/Short-read splicing analysis.pdf", pages = 3)[[1]])
+colnames(ir_finder) <- ir_finder[1, ]
+ir_finder <- ir_finder[-1, ]
+x$genes$isIrFinder <- x$genes$ref_gene_id %in% ir_finder$Gene
+```
+
+Gene set testing
+
+```{r geneSetLists}
+# minor IR
+fry(lcpm, x$genes$isMinorIR,design)
+barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
+            main = "Minor IR top 40 genes, targeted vs control")
+
+# minor AS
+fry(lcpm, x$genes$isMinorAS,design)
+barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
+            main = "Minor AS top 40 gene, targeted vs control")
+
+# IR finder
+fry(lcpm, x$genes$isIrFinder,design)
+barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
+            main = "IR finder unbiased top 40 genes, targeted vs control")
 ```
 
 #### Transcript classifications
