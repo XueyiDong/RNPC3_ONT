@@ -203,6 +203,20 @@ plotMDS(lcpm,
         main = "ONT long-read MDS plot",
         cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, cex = 1.5)
 dev.off()
+pdf("plots/longDTE/MDS_var.pdf", height = 5, width = 8)
+# par(mfrow = c(1, 2))
+layout(mat = matrix(1:2, ncol = 2), width = c(1.7, 1))
+mds <- plotMDS(lcpm,
+        col = rep(c("#c06636", "#646e3b"), each = 4),
+        label = paste(rep(c("NT", "RNPC3"), each = 4), 1:4, sep = "-"),
+        main = "ONT long-read MDS plot",
+        cex.main = 1.3, cex.lab = 1.3, cex.axis = 1.2,
+        xlim = c(-2.6, 2.7))
+barplot(mds$var.explained[1:7], names.arg = 1:7,
+        xlab = "Dimension",
+        ylab = "Proportion of variance explained",
+        cex.main = 1.3, cex.lab = 1.3, cex.axis = 1.2)
+dev.off()
 ```
 
 On the MDS plot, samples from different groups are separated on dimension 2.
@@ -384,9 +398,8 @@ write.csv(ts, file = "results/DTU_gene_topSplice.csv")
 write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
 
 # check number of top DTU MI genes
-
 topN.ts <- top_n_mi(ts)
-pdf("plots/topN_MI_DTU.pdf", height = 4)
+pdf("plots/topN_MI_DTU.pdf", height = 5, width = 8)
 ggplot(topN.ts, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -394,7 +407,7 @@ ggplot(topN.ts, aes(x = n, y = n_mi)) +
 dev.off()
 
 topN.ts.tx <- top_n_mi(ts.tx)
-pdf("plots/topN_MI_DTU_tx.pdf", height = 4)
+pdf("plots/topN_MI_DTU_tx.pdf", height = 5, width = 8)
 ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
@@ -427,6 +440,45 @@ test.up$p.value
 test.down <- fisher.test(table(ts.tx$isMinorIntron, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
 test.down$p.value
 ```
+
+#### Other lists provided by Joan
+
+```{r geneSetDTUminorIR}
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorIR,
+            main = "Minor IR top 40 genes",
+            xlab = "t-statistics")
+test.mixed <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05))
+test.mixed$p.value
+test.up <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
+test.up$p.value
+test.down <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
+test.down$p.value
+```
+
+```{r geneSetDTUminorAS}
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorAS,
+            main = "Minor AS top 40 genes",
+            xlab = "t-statistics")
+test.mixed <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05))
+test.mixed$p.value
+test.up <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
+test.up$p.value
+test.down <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
+test.down$p.value
+```
+
+```{r geneSetDTUirFinder}
+barcodeplot(ds$t[, 2], index = ds$genes$isIrFinder,
+            main = "IR finder top 40 genes",
+            xlab = "t-statistics")
+test.mixed <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05))
+test.mixed$p.value
+test.up <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
+test.up$p.value
+test.down <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
+test.down$p.value
+```
+
 #### Transcript classifications
 
 Class "m" transripts
