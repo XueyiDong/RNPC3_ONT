@@ -232,6 +232,32 @@ plotBCV(x,
         cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5,
         main = "ONT long-read BCV")
 dev.off()
+# ggplot version of BCV plot
+dispersion <- data.frame(
+  AveLogCPM = x$AveLogCPM,
+  common.dispersion = x$common.dispersion,
+  trended.dispersion = x$trended.dispersion,
+  tagwise.dispersion = x$tagwise.dispersion
+)
+dispersion <- dispersion[order(dispersion$AveLogCPM),]
+pdf("plots/longDTE/BCV_gg.pdf", height = 5, width = 8)
+bcv.plot <- ggplot(dispersion)+
+  stat_binhex(aes(x = AveLogCPM, y = sqrt(tagwise.dispersion)), bins = 100) +
+  scale_fill_viridis(option = "magma", limits=c(0, 450)) +
+  # geom_hline(yintercept = sqrt(x$common.dispersion), aes(colour = "Common")) +
+  geom_line(aes(x = AveLogCPM, y = sqrt(common.dispersion), colour = "Common")) +
+  geom_line(aes(x = AveLogCPM, y = sqrt(trended.dispersion), colour = "Trend")) +
+  scale_colour_manual(name = "BCV",
+                      breaks = c("Common", "Trend"),
+                      values = c("Common" = "red", "Trend" = "blue")) +
+  theme_bw() +
+  labs(x = "Average log CPM", y = "Bioligical coefficient of variation",
+       fill = "Tagwise BCV\ncount",
+       title = "ONT long-read BCV") +
+  theme(text = element_text(size = 16))
+print(bcv.plot)
+dev.off()
+
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
@@ -266,6 +292,21 @@ ggplot(topN.tt, aes(x = n, y = n_mi)) +
   labs(x = "top n DE transcripts", y = "number of minor intron transcripts")
 dev.off()
 ```
+
+```{r eval=FALSE, echo=FALSE}
+bcv.plot.short <- readRDS("shortBCV.RDS")
+leg <- get_legend(bcv.plot)
+pdf("plots/compare/BCV.pdf", height = 5, width = 16)
+plot_grid(bcv.plot + 
+            theme(legend.position = "none") +
+            geom_hline(yintercept = layer_scales(bcv.plot.short)$y$range$range, colour = "grey70"),
+          bcv.plot.short + 
+            theme(legend.position = "none"),
+          leg,
+          ncol = 3, rel_widths = c(1, 1, 0.2))
+dev.off()
+```
+
 
 [DE results table](results/DE_topTags.csv)
 

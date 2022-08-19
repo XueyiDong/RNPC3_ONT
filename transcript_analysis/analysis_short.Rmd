@@ -115,6 +115,32 @@ plotBCV(x,
         cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5,
         main = "Illumina short-read BCV")
 dev.off()
+# ggplot version of BCV plot
+dispersion <- data.frame(
+  AveLogCPM = x$AveLogCPM,
+  common.dispersion = x$common.dispersion,
+  trended.dispersion = x$trended.dispersion,
+  tagwise.dispersion = x$tagwise.dispersion
+)
+dispersion <- dispersion[order(dispersion$AveLogCPM),]
+pdf("plots/shortDTE/BCV_gg.pdf", height = 5, width = 8)
+bcv.plot <- ggplot(dispersion)+
+  stat_binhex(aes(x = AveLogCPM, y = sqrt(tagwise.dispersion)), bins = 100) +
+  scale_fill_viridis(option = "magma", limits=c(0, 450)) +
+  # geom_hline(yintercept = sqrt(x$common.dispersion), aes(colour = "Common")) +
+  geom_line(aes(x = AveLogCPM, y = sqrt(common.dispersion), colour = "Common")) +
+  geom_line(aes(x = AveLogCPM, y = sqrt(trended.dispersion), colour = "Trend")) +
+  scale_colour_manual(name = "BCV",
+                      breaks = c("Common", "Trend"),
+                      values = c("Common" = "red", "Trend" = "blue")) +
+  theme_bw() +
+  labs(x = "Average log CPM", y = "Bioligical coefficient of variation",
+       fill = "Tagwise BCV\ncount",
+       title = "Illumina short-read BCV") +
+  theme(text = element_text(size = 16))
+print(bcv.plot)
+dev.off()
+saveRDS(bcv.plot, "shortBCV.RDS")
 qlfit <- glmQLFit(x, design)
 plotQLDisp(qlfit)
 res <- glmQLFTest(qlfit)
