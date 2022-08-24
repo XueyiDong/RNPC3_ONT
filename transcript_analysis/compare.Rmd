@@ -22,6 +22,7 @@ library(ggplot2)
 library(dplyr)
 library(ggVennDiagram)
 library(viridis)
+library(VennDiagram)
 ```
 
 ## Compare DTE results
@@ -68,6 +69,22 @@ venn.DTE <- ggVennDiagram(DTE.transcripts) +
   scale_fill_viridis()
 print(venn.DTE)
 
+venn.diagram(
+  DTE.transcripts,
+  category.names = c("ONT", "Illumina"),
+  main = "Significant DTEs",
+  filename = "plots/compare/DTEvenn.tiff",
+  output = TRUE,
+  height = 2000,
+  width = 2000,
+  fill = c("#438DAC", "#FCB344"),
+  fontfamily = "Arial",
+  main.fontfamily = "Arial",
+  sub.fontfamily = "Arial",
+  cat.fontfamily = "Arial",
+  cat.pos = c(-30, 30)
+)
+
 # Check overlapped DTE transcripts
 DTE.intersect <- data.frame(
   transcript = intersect(DTE.transcripts$long, DTE.transcripts$short)
@@ -86,6 +103,22 @@ DTE.top1000 <-list(
 venn.DTEtop1000 <- ggVennDiagram(DTE.top1000) +
   scale_fill_viridis()
 print(venn.DTEtop1000)
+
+venn.diagram(
+  DTE.top1000,
+  category.names = c("ONT", "Illumina"),
+  main = "Top 100 DTEs",
+  filename = "plots/compare/DTEvennTop1000.tiff",
+  output = TRUE,
+  height = 2000,
+  width = 2000,
+  fill = c("#438DAC", "#FCB344"),
+  fontfamily = "Arial",
+  main.fontfamily = "Arial",
+  sub.fontfamily = "Arial",
+  cat.fontfamily = "Arial",
+  cat.pos = c(-25, 25)
+)
 
 # Gene set testing and barcode plots, short tx in long data
 lcpm.long <- readRDS("rds/lcpm.long.RDS")
@@ -156,6 +189,22 @@ DTU.genes <- list(
 )
 ggVennDiagram(DTU.genes) +
   scale_fill_viridis()
+
+venn.diagram(
+  DTU.genes,
+  category.names = c("ONT", "Illumina"),
+  main = "Significant gene-level DTUs",
+  filename = "plots/compare/DTUvennGene.tiff",
+  output = TRUE,
+  height = 2000,
+  width = 2000,
+  fill = c("#438DAC", "#FCB344"),
+  fontfamily = "Arial",
+  main.fontfamily = "Arial",
+  sub.fontfamily = "Arial",
+  cat.fontfamily = "Arial",
+  cat.pos = c(-150, 150)
+)
 ```
 
 ### Transcript-level results
@@ -170,6 +219,22 @@ DTU.transcripts <- list(
 # venn diagram
 ggVennDiagram(DTU.transcripts) +
   scale_fill_viridis()
+
+venn.diagram(
+  DTU.transcripts,
+  category.names = c("ONT", "Illumina"),
+  main = "Significant transcript-level DTUs",
+  filename = "plots/compare/DTUvennTx.tiff",
+  output = TRUE,
+  height = 2000,
+  width = 2000,
+  fill = c("#438DAC", "#FCB344"),
+  fontfamily = "Arial",
+  main.fontfamily = "Arial",
+  sub.fontfamily = "Arial",
+  cat.fontfamily = "Arial",
+  cat.pos = c(-150, 150)
+)
 # Check overlapped DTU transcripts
 DTU.intersect <- data.frame(
   transcript = intersect(DTU.transcripts$long, DTU.transcripts$short)

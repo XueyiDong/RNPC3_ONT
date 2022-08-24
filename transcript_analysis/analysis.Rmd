@@ -299,7 +299,7 @@ leg <- get_legend(bcv.plot)
 pdf("plots/compare/BCV.pdf", height = 5, width = 16)
 plot_grid(bcv.plot + 
             theme(legend.position = "none") +
-            geom_hline(yintercept = layer_scales(bcv.plot.short)$y$range$range, colour = "grey70"),
+            geom_hline(yintercept = layer_scales(bcv.plot.short)$y$range$range, colour = "grey30"),
           bcv.plot.short + 
             theme(legend.position = "none"),
           leg,
