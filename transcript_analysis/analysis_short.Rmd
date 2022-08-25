@@ -190,13 +190,22 @@ The `PValue` column gives the two-sided p-value for testing whether the set is D
 
 ```{r geneSetMI}
 lcpm <- cpm(x, log = TRUE)
-fry(lcpm, x$genes$isMinorIntron,design)
+res.fry <- fry(lcpm, x$genes$isMinorIntron,design)
+res.fry
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
-            main = "Minor intron genes, targeted vs control")
-pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 8)
+            xlab = "log fold change",
+            main = paste0("Illumina minor intron genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)))
+pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 16)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
-            main = "Illumina minor intron genes, targeted vs control" ,
-            cex.lab = 1.8, cex.axis = 1.5, cex = 1.5)
+            xlab = "log fold change",
+            main = paste0("Illumina minor intron genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)),
+             cex = 1.8)
 dev.off()
 ```
 
@@ -233,19 +242,59 @@ Gene set testing
 
 ```{r geneSetLists}
 # minor IR
-fry(lcpm, x$genes$isMinorIR,design)
+res.fry <- fry(lcpm, x$genes$isMinorIR,design)
+res.fry
 barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
-            main = "Minor IR top 40 genes, targeted vs control")
-
+            xlab = "log fold change",
+            main = paste0("Illumina Minor IR top 40 genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)))
+pdf("plots/shortDTE/barcode_MinorIR.pdf", height = 5, width = 8)
+barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
+            xlab = "log fold change",
+            main = paste0("Illumina Minor IR top 40 genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)),
+            cex = 1.8)
+dev.off()
 # minor AS
-fry(lcpm, x$genes$isMinorAS,design)
+res.fry <- fry(lcpm, x$genes$isMinorAS,design)
+res.fry
 barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
-            main = "Minor AS top 40 gene, targeted vs control")
+            xlab = "log fold change",
+            main = paste0("Illumina Minor AS top 40 gene, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)))
+pdf("plots/shortDTE/barcode_minorAS.pdf", height = 5, width = 8)
+barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
+            xlab = "log fold change",
+            main = paste0("Illumina Minor AS top 40 gene, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)),
+            cex = 1.8)
+dev.off()
 
 # IR finder
-fry(lcpm, x$genes$isIrFinder,design)
+res.fry <- fry(lcpm, x$genes$isIrFinder,design)
+res.fry
 barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
-            main = "IR finder unbiased top 40 genes, targeted vs control")
+            xlab = "log fold change",
+            main = paste0("Illumina IR finder unbiased top 40 genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)))
+pdf("plots/shortDTE/barcode_IRFinder.pdf", height = 5, width = 8)
+barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
+            xlab = "log fold change",
+            main = paste0("Illumina IR finder unbiased top 40 genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)))
+dev.off()
 ```
 
 #### Transcript classifications
