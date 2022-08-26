@@ -504,22 +504,24 @@ write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
 
 # check number of top DTU MI genes
 topN.ts <- top_n_mi(ts)
-pdf("plots/longDTU/topN_MI_DTU.pdf", height = 5, width = 8)
+pdf("plots/longDTU/topN_MI_DTU.pdf", height = 5, width = 4)
 ggplot(topN.ts, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   labs(x = "top n DTU genes", y = "number of minor intron genes",
-       title = "ONT gene-level DTUs") +
+       title = "ONT DTU genes") +
+  theme_bw() +
   theme(text = element_text(size = 18))
 dev.off()
 
 topN.ts.tx <- top_n_mi(ts.tx)
-pdf("plots/longDTU/topN_MI_DTU_tx.pdf", height = 5, width = 8)
+pdf("plots/longDTU/topN_MI_DTU_tx.pdf", height = 5, width = 4)
 ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   labs(x = "top n DTU transcripts", y = "number of minor intron transcripts",
-       title = "ONT transcript-level DTUs") +
+       title = "ONT DTU transcripts") +
+  theme_bw() +
   theme(text = element_text(size = 18))
 dev.off()
 ```
@@ -548,6 +550,17 @@ test.up <- fisher.test(table(ts.tx$isMinorIntron, ts.tx$FDR < 0.05 & ts.tx$logFC
 test.up$p.value
 test.down <- fisher.test(table(ts.tx$isMinorIntron, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
 test.down$p.value
+
+pdf("plots/longDTU/barcode_minorIntron.pdf", height = 5, width = 16)
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorIntron,
+            main = paste0("ONT transcripts of minor intron genes, n=",
+                          sum(ds$genes$isMinorIntron),
+                          "\nFisher's exact test p-value=",
+                          signif(test.mixed$p.value, 3)),
+            xlab = "t-statistics",
+            cex.lab = 1.5,
+            cex.main = 1.5)
+dev.off()
 ```
 
 #### Other lists provided by Joan
