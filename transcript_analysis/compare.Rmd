@@ -141,6 +141,8 @@ barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weigh
             main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 ```
 
+### Save plots as PDF files
+
 ```{r DTEpdf}
 pdf("plots/compare/F.pdf", height = 5, width = 8)
 print(plot.f)
@@ -164,12 +166,20 @@ index <- data.frame(Gene = tt.short$qry_id[tt.short$FDR < 0.05],
 index <- index[!is.na(match(index$Gene, tt.long$qry_id)),]
 test.res <- fry(lcpm.long, index, design)
 barcodeplot(tt.long$logFC, index=match(index$Gene, tt.long$qry_id), gene.weights = index$Weight,
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2,
+            xlab = "log fold change",
             main = paste("Short-read DTEs in long-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 index <- data.frame(Gene = tt.long$qry_id[tt.long$FDR < 0.05],
                     Weight = tt.long$logFC[tt.long$FDR < 0.05])
 index <- index[!is.na(match(index$Gene, tt.short$qry_id)),]
 test.res <- fry(lcpm.short, index, design)
 barcodeplot(tt.short$logFC, index=match(index$Gene, tt.short$qry_id), gene.weights = index$Weight,
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2,
+            xlab = "log fold change",
             main = paste("Long-read DTEs in short-read data\nfry", test.res$Direction, "P-value =", signif(test.res$PValue, 3)))
 dev.off()
 ```
@@ -254,6 +264,47 @@ barcodeplot(ts.tx.short$logFC, index = na.omit(match(DTU.transcripts$long, ts.tx
             gene.weights = ts.tx.long$logFC[match(DTU.transcripts$long[DTU.transcripts$long %in% ts.tx.short$qry_id], ts.tx.long$qry_id)],
             main = "Long-read DTU transcripts in short-read data")
 ```
+
+### Save plots as PDF files
+
+```{r DTUpdf}
+pdf("plots/compare/DTUbarcode.pdf", height = 5, width = 8)
+# barcode plot, short tx in long data
+barcodeplot(ts.tx.long$t, index = na.omit(match(DTU.transcripts$short, ts.tx.long$qry_id)), 
+            gene.weights = ts.tx.short$logFC[match(DTU.transcripts$short[DTU.transcripts$short %in% ts.tx.long$qry_id], ts.tx.short$qry_id)],
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2,
+            xlab = "t-statistic",
+            main = "Short-read DTU transcripts in long-read data")
+# barcode plot, long tx in short data
+barcodeplot(ts.tx.short$t, index = na.omit(match(DTU.transcripts$long, ts.tx.short$qry_id)), 
+            gene.weights = ts.tx.long$logFC[match(DTU.transcripts$long[DTU.transcripts$long %in% ts.tx.short$qry_id], ts.tx.long$qry_id)],
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2,
+            xlab = "t-statistic",
+            main = "Long-read DTU transcripts in short-read data")
+dev.off()
+
+t <- data.frame(
+  t.long = ts.tx.long$t,
+  t.short = ts.tx.short$t[match(ts.tx.long$qry_id, ts.tx.short$qry_id)]
+)
+t <- na.omit(t)
+cor(t$t.long, t$t.short)
+pdf("plots/compare/DTUt.pdf", height = 5, width = 8)
+ggplot(t, aes(x=t.long, y=t.short)) +
+  stat_binhex(bins = 100) +
+  scale_fill_viridis() +
+  theme_bw() +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "ONT long-read t", y = "Illumina short-read t")
+dev.off()
+```
+
 
 ## Session information
 ```{r sessionInfo}

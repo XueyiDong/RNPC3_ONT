@@ -504,19 +504,23 @@ write.csv(ts.tx, file = "results/DTU_transcript_topSplice.csv")
 
 # check number of top DTU MI genes
 topN.ts <- top_n_mi(ts)
-pdf("plots/topN_MI_DTU.pdf", height = 5, width = 8)
+pdf("plots/longDTU/topN_MI_DTU.pdf", height = 5, width = 8)
 ggplot(topN.ts, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(x = "top n DTU genes", y = "number of minor intron genes")
+  labs(x = "top n DTU genes", y = "number of minor intron genes",
+       title = "ONT gene-level DTUs") +
+  theme(text = element_text(size = 18))
 dev.off()
 
 topN.ts.tx <- top_n_mi(ts.tx)
-pdf("plots/topN_MI_DTU_tx.pdf", height = 5, width = 8)
+pdf("plots/longDTU/topN_MI_DTU_tx.pdf", height = 5, width = 8)
 ggplot(topN.ts.tx, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(x = "top n DTU transcripts", y = "number of minor intron transcripts")
+  labs(x = "top n DTU transcripts", y = "number of minor intron transcripts",
+       title = "ONT transcript-level DTUs") +
+  theme(text = element_text(size = 18))
 dev.off()
 ```
 
