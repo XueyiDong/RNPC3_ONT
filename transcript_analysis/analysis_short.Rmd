@@ -168,11 +168,71 @@ top_n_mi <- function(ts){
   return(res)
 }
 topN.tt <- top_n_mi(as.data.frame(tt))
-pdf("plots_short/topN_MI_DTE.pdf", height = 4)
-ggplot(topN.tt, aes(x = n, y = n_mi)) +
+pdf("plots/shortDTE/topN_MI_DTE.pdf", height = 5, width = 6)
+plot.topN.DTE <- ggplot(topN.tt, aes(x = n, y = n_mi)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(x = "top n DE transcripts", y = "number of minor intron transcripts")
+  labs(x = "top n DE transcripts", y = "number of minor intron transcripts",
+       title = "Illumina DTEs") +
+  theme_bw() +
+  theme(text = element_text(size = 18))
+print(plot.topN.DTE)
+dev.off()
+
+pdf("plots/shortDTE/topN_MI_DTE_top50.pdf", height = 5, width = 4)
+plot.topN.DTE.top50 <- ggplot(topN.tt[1:50, ], aes(x = n, y = n_mi)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(x = "top n DE transcripts", y = "number of minor intron transcripts") +
+  theme_bw() +
+  theme(text = element_text(size = 18))
+print(plot.topN.DTE.top50)
+dev.off()
+
+pdf("plots/shortDTE/topN_MI_DTE_top100.pdf", height = 5, width = 4)
+plot.topN.DTE.top100 <- ggplot(topN.tt[1:100, ], aes(x = n, y = n_mi)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(x = "top n DE transcripts", y = "number of minor intron transcripts") +
+  theme_bw() +
+  theme(text = element_text(size = 18))
+print(plot.topN.DTE.top100)
+dev.off()
+
+pdf("plots/shortDTE/topN_MI_DTE_combined.pdf", height = 5, width = 10)
+ranges = c(layer_scales(plot.topN.DTE.top100)$x$range$range,
+           layer_scales(plot.topN.DTE.top100)$y$range$range)
+plot_grid(plot.topN.DTE +
+            annotate("rect", 
+                     xmin = ranges[1] - (ranges[2] - ranges[1]) * 0.05,
+                     xmax = ranges[2] + (ranges[2] - ranges[1]) * 0.05,
+                     ymin = ranges[3] - (ranges[4] - ranges[3]) * 0.05,
+                     ymax = ranges[4] + (ranges[4] - ranges[3]) * 0.05,
+                     alpha = .3,
+                     fill = "blue"), 
+          plot.topN.DTE.top100 +
+            theme(axis.title.y = element_blank()),
+          rel_widths = c(6, 4))
+dev.off()
+
+pdf("plots/shortDTE/topN_MI_DTE_new.pdf", height = 5, width = 8)
+print(plot.topN.DTE +
+            annotate("rect", 
+                     xmin = ranges[1] - (ranges[2] - ranges[1]) * 0.05,
+                     xmax = ranges[2] + (ranges[2] - ranges[1]) * 0.05,
+                     ymin = ranges[3] - (ranges[4] - ranges[3]) * 0.05,
+                     ymax = ranges[4] + (ranges[4] - ranges[3]) * 0.05,
+                     alpha = .2,
+                     fill = "blue"))
+dev.off()
+
+pdf("plots/shortDTE/topN_MI_DTE_top100_small.pdf", height = 2, width = 3)
+print(plot.topN.DTE.top100 +
+            theme(axis.title.y = element_blank(),
+                  axis.title.x = element_blank(),
+                  panel.background = element_rect(fill = "#CCCCFF"),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank()))
 dev.off()
 ```
 
@@ -192,12 +252,12 @@ The `PValue` column gives the two-sided p-value for testing whether the set is D
 lcpm <- cpm(x, log = TRUE)
 res.fry <- fry(lcpm, x$genes$isMinorIntron,design)
 res.fry
-barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
-            xlab = "log fold change",
-            main = paste0("Illumina minor intron genes, n=",
-                          res.fry$NGenes,
-                          "\nFry mixed p-value=",
-                          signif(res.fry$PValue.Mixed, 3)))
+# barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
+#             xlab = "log fold change",
+#             main = paste0("Illumina minor intron genes, n=",
+#                           res.fry$NGenes,
+#                           "\nFry mixed p-value=",
+#                           signif(res.fry$PValue.Mixed, 3)))
 pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 16)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
             xlab = "log fold change",
@@ -205,7 +265,9 @@ barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
                           res.fry$NGenes,
                           "\nFry mixed p-value=",
                           signif(res.fry$PValue.Mixed, 3)),
-             cex = 1.8)
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
 dev.off()
 ```
 
@@ -244,12 +306,12 @@ Gene set testing
 # minor IR
 res.fry <- fry(lcpm, x$genes$isMinorIR,design)
 res.fry
-barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
-            xlab = "log fold change",
-            main = paste0("Illumina Minor IR top 40 genes, n=",
-                          res.fry$NGenes,
-                          "\nFry mixed p-value=",
-                          signif(res.fry$PValue.Mixed, 3)))
+# barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
+#             xlab = "log fold change",
+#             main = paste0("Illumina Minor IR top 40 genes, n=",
+#                           res.fry$NGenes,
+#                           "\nFry mixed p-value=",
+#                           signif(res.fry$PValue.Mixed, 3)))
 pdf("plots/shortDTE/barcode_MinorIR.pdf", height = 5, width = 8)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
             xlab = "log fold change",
@@ -257,17 +319,19 @@ barcodeplot(res$table$logFC, index = x$genes$isMinorIR,
                           res.fry$NGenes,
                           "\nFry mixed p-value=",
                           signif(res.fry$PValue.Mixed, 3)),
-            cex = 1.8)
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
 dev.off()
 # minor AS
 res.fry <- fry(lcpm, x$genes$isMinorAS,design)
 res.fry
-barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
-            xlab = "log fold change",
-            main = paste0("Illumina Minor AS top 40 gene, n=",
-                          res.fry$NGenes,
-                          "\nFry mixed p-value=",
-                          signif(res.fry$PValue.Mixed, 3)))
+# barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
+#             xlab = "log fold change",
+#             main = paste0("Illumina Minor AS top 40 gene, n=",
+#                           res.fry$NGenes,
+#                           "\nFry mixed p-value=",
+#                           signif(res.fry$PValue.Mixed, 3)))
 pdf("plots/shortDTE/barcode_minorAS.pdf", height = 5, width = 8)
 barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
             xlab = "log fold change",
@@ -275,25 +339,30 @@ barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
                           res.fry$NGenes,
                           "\nFry mixed p-value=",
                           signif(res.fry$PValue.Mixed, 3)),
-            cex = 1.8)
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
 dev.off()
 
 # IR finder
 res.fry <- fry(lcpm, x$genes$isIrFinder,design)
 res.fry
-barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
-            xlab = "log fold change",
-            main = paste0("Illumina IR finder unbiased top 40 genes, n=",
-                          res.fry$NGenes,
-                          "\nFry mixed p-value=",
-                          signif(res.fry$PValue.Mixed, 3)))
+# barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
+#             xlab = "log fold change",
+#             main = paste0("Illumina IR finder unbiased top 40 genes, n=",
+#                           res.fry$NGenes,
+#                           "\nFry mixed p-value=",
+#                           signif(res.fry$PValue.Mixed, 3)))
 pdf("plots/shortDTE/barcode_IRFinder.pdf", height = 5, width = 8)
 barcodeplot(res$table$logFC, index = x$genes$isIrFinder,
             xlab = "log fold change",
             main = paste0("Illumina IR finder unbiased top 40 genes, n=",
                           res.fry$NGenes,
                           "\nFry mixed p-value=",
-                          signif(res.fry$PValue.Mixed, 3)))
+                          signif(res.fry$PValue.Mixed, 3)),
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
 dev.off()
 ```
 
