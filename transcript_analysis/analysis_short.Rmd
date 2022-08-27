@@ -335,7 +335,7 @@ res.fry
 pdf("plots/shortDTE/barcode_minorAS.pdf", height = 5, width = 8)
 barcodeplot(res$table$logFC, index = x$genes$isMinorAS,
             xlab = "log fold change",
-            main = paste0("Illumina Minor AS top 40 gene, n=",
+            main = paste0("Illumina Minor AS significant genes, n=",
                           res.fry$NGenes,
                           "\nFry mixed p-value=",
                           signif(res.fry$PValue.Mixed, 3)),
@@ -475,39 +475,61 @@ dev.off()
 #### Other lists provided by Joan
 
 ```{r geneSetDTUminorIR}
-barcodeplot(ds$t[, 2], index = ds$genes$isMinorIR,
-            main = "Minor IR top 40 genes",
-            xlab = "t-statistics")
 test.mixed <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05))
 test.mixed$p.value
 test.up <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
 test.up$p.value
 test.down <- fisher.test(table(ts.tx$isMinorIR, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
 test.down$p.value
+
+pdf("plots/shortDTU/barcode_minorIR.pdf", height = 5, width = 8)
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorIR,
+            main = paste0("Illumina transcripts of minor IR top 40 genes, n=",
+                          sum(ds$genes$isMinorIR),
+                          "\nFisher's exact test p-value=",
+                          signif(test.mixed$p.value, 3)),
+            xlab = "t-statistics",
+            cex.lab = 1.5,
+            cex.main = 1.5)
+dev.off()
 ```
 
 ```{r geneSetDTUminorAS}
-barcodeplot(ds$t[, 2], index = ds$genes$isMinorAS,
-            main = "Minor AS top 40 genes",
-            xlab = "t-statistics")
 test.mixed <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05))
 test.mixed$p.value
 test.up <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
 test.up$p.value
 test.down <- fisher.test(table(ts.tx$isMinorAS, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
 test.down$p.value
+pdf("plots/shortDTU/barcode_minorAS.pdf", height = 5, width = 8)
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorAS,
+             main = paste0("Illumina transcripts of minor AS significant genes, n=",
+                          sum(ds$genes$isMinorAS),
+                          "\nFisher's exact test p-value=",
+                          signif(test.mixed$p.value, 3)),
+            xlab = "t-statistics",
+            cex.lab = 1.5,
+            cex.main = 1.5)
+dev.off()
 ```
 
 ```{r geneSetDTUirFinder}
-barcodeplot(ds$t[, 2], index = ds$genes$isIrFinder,
-            main = "IR finder top 40 genes",
-            xlab = "t-statistics")
 test.mixed <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05))
 test.mixed$p.value
 test.up <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05 & ts.tx$logFC > 0))
 test.up$p.value
 test.down <- fisher.test(table(ts.tx$isIrFinder, ts.tx$FDR < 0.05 & ts.tx$logFC < 0))
 test.down$p.value
+pdf("plots/shortDTU/barcode_IRFinder.pdf", height = 5, width = 8)
+barcodeplot(ds$t[, 2], index = ds$genes$isIrFinder,
+           main = paste0("Illumina transcripts of IR Finder top 40 genes, n=",
+                          sum(ds$genes$isIrFinder),
+                          "\nFisher's exact test p-value=",
+                          signif(test.mixed$p.value, 3)),
+            xlab = "t-statistics",
+            cex.lab = 1.5,
+            cex.main = 1.5)
+dev.off()
 ```
 
 #### Transcript classifications
