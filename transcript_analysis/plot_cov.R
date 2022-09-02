@@ -25,7 +25,7 @@ parts <- readRDS("rds/complete_annotation.rds")
 bam_dir = "../aligned_minimap2"
 design <- data.frame(
   Sample = paste0(rep(paste(rep(c("NT", "targeted"), c(4, 4)), rep(1:4, 2), sep = "_"), rep(2, 8)), rep(c("_fail", "_pass"), 8)),
-  Bam = file.path(bam_dir, list.files(bam_dir, ".bam$")),
+  Bam = file.path(bam_dir, list.files(bam_dir, ".bam$"))[1:16],
   Replicate = rep(rep(1:4, 2), rep(2, 8)),
   siRNA = rep(c("NT", "RNPC3"), c(8,8))
 )
@@ -110,11 +110,11 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
                                     options(ucscChromosomeNames=FALSE))
         # add coverage histogram track
         if("long" %in% cov_data){
-          dTrack_long <- make_cov_track(cvg, gene, "long")
+          dTrack_long <- make_cov_track(cvg, gene, "ONT")
           trackList <- append(dTrack_long, trackList)
         }
         if("short" %in% cov_data){
-          dTrack_short <- make_cov_track(cvg.short, gene, "short")
+          dTrack_short <- make_cov_track(cvg.short, gene, "Illumina")
           trackList <- append(dTrack_short, trackList)
         }
         # add alignment track
@@ -124,22 +124,22 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
                                              isPaired = FALSE,
                                              options(ucscChromosomeNames=FALSE),
                                              type = "pileup",
-                                             name = "long NT")
+                                             name = "ONT NT")
           alTrack_long_RNPC3 <- AlignmentsTrack("../aligned_minimap2/merged_RNPC3.bam",
                                                 isPaired = FALSE,
                                                 options(ucscChromosomeNames=FALSE),
                                                 type = "pileup",
-                                                name = "long RNPC3")
+                                                name = "ONT RNPC3")
           alTrack_short_NT <- AlignmentsTrack("../short_bam_merged/merged_NT.bam",
                                               isPaired = TRUE,
                                               options(ucscChromosomeNames=FALSE),
                                               type = "pileup",
-                                              name = "short NT")
+                                              name = "Illumina NT")
           alTrack_short_RNPC3 <- AlignmentsTrack("../short_bam_merged/merged_RNPC3.bam",
                                                  isPaired = TRUE,
                                                  options(ucscChromosomeNames=FALSE),
                                                  type = "pileup",
-                                                 name = "short RNPC3")
+                                                 name = "Illumina RNPC3")
           trackList<- Reduce(append, c(alTrack_long_NT, alTrack_long_RNPC3, alTrack_short_NT, alTrack_short_RNPC3, trackList))
         }
         # add highlight for minor intron region
@@ -169,8 +169,8 @@ counts.short <- readRDS("rds/counts_short.RDS")
 cpm.short <- cpm(counts.short$counts / counts.short$annotation$Overdispersion, log = TRUE)
 colnames(cpm.short) <- paste(rep(c("NT", "RNPC3"), each = 4), rep(1:4, 2), sep = "_")
 # function
-make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none", 
-                             cluster_rows = TRUE, cluster_cols = FALSE, mat = cpm){
+make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none", t = FALSE,
+                             cluster_rows = TRUE, cluster_cols = FALSE, mat = cpm, ...){
   anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
   if(nrow(anno) == 0){
     cat("Gene", gene, "not found!\n")
@@ -188,30 +188,58 @@ make_gen_heatmap <- function(gene, anno.row=NULL, scale = "none",
     print(p)
   } else {
     dat <- mat[anno$transcript_id[anno$transcript_id %in% rownames(mat)], ]
-    anno_col <- data.frame(
-      siRNA = rep(c("NT", "RNPC3"), each = 4)
-    )
+    if(ncol(dat) == 8){
+      anno_col <- data.frame(
+        siRNA = rep(c("NT", "RNPC3"), each = 4)
+      )
+    } else if (ncol(dat) == 16){
+      anno_col <- data.frame(
+        siRNA = rep(c("NT", "RNPC3", "NT", "RNPC3"), each = 4),
+        dataset = rep(c("Illumina", "ONT"), each = 8)
+      )
+    }
     # rownames(anno_col) <- paste0("barcode0", 1:8)
     rownames(anno_col) <- colnames(dat)
     if(is.null(anno.row)){
-      pheatmap(dat,
-               cluster_rows = cluster_rows,
-               cluster_cols = cluster_cols,
-               scale = scale,
-               annotation_col = anno_col,
-               main = gene)
+      if(t == FALSE){
+        pheatmap(dat,
+                 cluster_rows = cluster_rows,
+                 cluster_cols = cluster_cols,
+                 scale = scale,
+                 annotation_col = anno_col,
+                 main = gene, ...)
+      } else {
+        pheatmap(t(dat),
+                 cluster_rows = cluster_cols,
+                 cluster_cols = cluster_rows,
+                 scale = scale,
+                 # annotation_row = anno_col,
+                 # main = gene,
+                 ...)
+      }
+      
     } else {
       anno_row <- as.data.frame(anno[, anno.row]) %>%
         dplyr::mutate_if(is.logical, as.character)
       colnames(anno_row) <- anno.row
       rownames(anno_row) <- anno$transcript_id
-      pheatmap(dat,
-               cluster_rows = cluster_rows,
-               cluster_cols = cluster_cols,
-               scale = scale,
-               annotation_col = anno_col,
-               annotation_row = anno_row,
-               main = gene)
+      if(t == FALSE){
+        pheatmap(dat,
+                 cluster_rows = cluster_rows,
+                 cluster_cols = cluster_cols,
+                 scale = scale,
+                 annotation_col = anno_col,
+                 annotation_row = anno_row,
+                 main = gene, ...)
+      } else {
+        pheatmap(t(dat),
+                 cluster_rows = cluster_cols,
+                 cluster_cols = cluster_rows,
+                 scale = scale,
+                 annotation_col = anno_row,
+                 annotation_row = anno_col,
+                 main = gene, ...)
+      }
     }
   }
 }
@@ -340,6 +368,7 @@ for(i in genes){
 dev.off()
 
 ## Gene examples ----
+### coverage ----
 gene_examples <- xlsx::read.xlsx("../metadata/Gene examples and thoughts.xlsx", sheetIndex = 1)
 genes <- refmap$qry_gene_id[match(na.omit(gene_examples$Gene), refmap$ref_gene_id)]
 pdf("plots/list/gene_examples_coverage.pdf")
@@ -357,12 +386,84 @@ for(i in genes){
   make_gen_heatmap(i, c("class_code", "isDTU", "isDTE", "minor_ir", "minor_as", "ir_finder"), mat = cpm.short)
 }
 dev.off()
+### heatmap ----
+# combine long and short cpm
+cpm.merged <- merge(cpm.short, cpm,  by = 0)
+rownames(cpm.merged) <- cpm.merged$Row.names
+cpm.merged <- cpm.merged[,-1]
+colnames(cpm.merged) <- paste(rep(c("NT", "RNPC3", "NT", "RNPC3"), each = 4), 
+                              1:4, 
+                              rep(c("Illumina", "ONT"), each = 8),
+                              sep = "_")
+make_gen_heatmap2 <- function(order, mat, ...){
+  # anno <- gr %>% filter(gene_id == gene, type == "transcript") %>% as.data.frame
+  # if(nrow(anno) == 0){
+  #   cat("Gene", gene, "not found!\n")
+  # } else if(nrow(anno) == 1){
+  #   cat("Gene", gene, "only have one transcript.\n")
+  #   dat <- mat[anno$transcript_id, ]
+  #   dat <- data.frame(
+  #     sample = names(dat),
+  #     logCPM = dat
+  #   )
+  #   p <- ggplot(dat, aes(x = sample, y = logCPM)) +
+  #     geom_bar(stat="identity")+
+  #     ggtitle(gene)
+  #   print(p)
+  # } else {
+    # dat <- mat[anno$transcript_id[anno$transcript_id %in% rownames(mat)], ]
+    # if(!is.na(order)){
+    #   dat <- dat[order, ]
+    # }
+    dat <- mat[order, ]
+    pheatmap(t(dat),
+             cluster_rows = FALSE,
+             cluster_cols = FALSE,
+             scale = "none",
+             ...)
+  # }
+}
+#### TMEM80 ----
+pdf("plots/list/heatmap/TMEM80.pdf", height = 7, width = 4)
+make_gen_heatmap2(c("NM_001384408.1",
+                    "NM_001042463.3",
+                    "NM_001276253.2",
+                    "NM_001276274.2",
+                    "NM_174940.4",
+                    "tx.3968"),
+                  cpm.merged)
+dev.off()
+#### NCBP2 ----
+pdf("plots/list/heatmap/NCBP2.pdf", height = 7, width = 4)
+make_gen_heatmap2(c("NM_001042540.2",
+                    "NM_001308036.2",
+                    "NM_007362.5",
+                    "tx.1570"),
+                  cpm.merged)
+dev.off()
+#### SPCS2 ----
+pdf("plots/list/heatmap/SPCS2.pdf", height = 7, width = 4)
+make_gen_heatmap2(c("NM_014752.3",
+                    "tx.4269",
+                    "tx.4270"),
+                  cpm.merged)
+dev.off()
+#### DERL2 ----
+pdf("plots/list/heatmap/DERL2.pdf", height = 7, width = 4)
+make_gen_heatmap2(c("NM_001304777.2",
+                    "NM_001304779.2",
+                    "NM_016041.5",
+                    "NR_130905.2",
+                    "NR_130906.2",
+                    "tx.5961"),
+                  cpm.merged)
+dev.off()
 
 # make plot for DTE/DTU using gviz ----
 genes <- list()
 for(i in c("DTEgenesMI", "DTEgenesNotMI", "DTUgenesMI", "DTUgenesNotMI")){
   cat("Working on", i, ".\n")
-  genes[[i]] <- readRDS(paste0("rds/"i, ".RDS"))
+  genes[[i]] <- readRDS(paste0("rds/", i, ".RDS"))
   pdf(paste0("plots/cov_", i, "2.pdf"))
   for(j in genes[[i]]){
     plot_cov_genes2(j)
