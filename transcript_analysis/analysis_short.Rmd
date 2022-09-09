@@ -258,7 +258,18 @@ res.fry
 #                           res.fry$NGenes,
 #                           "\nFry mixed p-value=",
 #                           signif(res.fry$PValue.Mixed, 3)))
-pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 16)
+pdf("plots/shortDTE/barcode_minorIntron.pdf", height = 5, width = 20)
+barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
+            xlab = "log fold change",
+            main = paste0("Illumina minor intron genes, n=",
+                          res.fry$NGenes,
+                          "\nFry mixed p-value=",
+                          signif(res.fry$PValue.Mixed, 3)),
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
+dev.off()
+pdf("plots/shortDTE/barcode_minorIntron_small.pdf", height = 5, width = 8)
 barcodeplot(res$table$logFC, index = x$genes$isMinorIntron,
             xlab = "log fold change",
             main = paste0("Illumina minor intron genes, n=",
@@ -469,6 +480,17 @@ barcodeplot(ds$t[, 2], index = ds$genes$isMinorIntron,
             xlab = "t-statistics",
             cex.lab = 1.5,
             cex.main = 1.5)
+dev.off()
+pdf("plots/shortDTU/barcode_minorIntron_small.pdf", height = 5, width = 8)
+barcodeplot(ds$t[, 2], index = ds$genes$isMinorIntron,
+            main = paste0("Illumina transcripts of minor intron genes, n=",
+                          sum(ds$genes$isMinorIntron),
+                          "\nFisher's exact test p-value=",
+                          signif(test.mixed$p.value, 3)),
+            xlab = "t-statistics",
+            cex.lab = 1.5,
+            cex.main = 1.5,
+            cex = 2)
 dev.off()
 ```
 

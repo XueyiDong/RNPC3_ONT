@@ -68,7 +68,9 @@ mi$gene_id <- refmap$qry_gene_id[match(mi$name, refmap$ref_gene_id)]
 # Visualize coverage using Gviz ----
 library(Gviz)
 
-make_cov_track <- function(cvg, gene, dataset){
+make_cov_track <- function(cvg, gene, dataset, ...){
+  bg.col <- c("#c06636", "#646e3b")
+  names(bg.col) <- c("NT", "RNPC3")
   if (gene %in% parts$gene_id){
     # cat("Making plot for gene", gene, ".\n")
     features <- parts %>% filter(gene_id == gene)
@@ -85,7 +87,9 @@ make_cov_track <- function(cvg, gene, dataset){
                   options(ucscChromosomeNames=FALSE), 
                   name = paste(x, dataset),
                   data = "score",
-                  type = "h")
+                  type = "h",
+                  background.title = bg.col[x],
+                  ...)
       })
       return(dTrack)
     }
@@ -107,14 +111,19 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
                                       filter(gene_id==gene) %>% 
                                       GenomicFeatures::makeTxDbFromGRanges(),
                                     transcriptAnnotation = "transcript",
-                                    options(ucscChromosomeNames=FALSE))
+                                    options(ucscChromosomeNames=FALSE),
+                                    fill = "grey")
         # add coverage histogram track
         if("long" %in% cov_data){
-          dTrack_long <- make_cov_track(cvg, gene, "ONT")
+          dTrack_long <- make_cov_track(cvg, gene, "ONT",
+                                        fill = "#438DAC",
+                                        col = "#438DAC")
           trackList <- append(dTrack_long, trackList)
         }
         if("short" %in% cov_data){
-          dTrack_short <- make_cov_track(cvg.short, gene, "Illumina")
+          dTrack_short <- make_cov_track(cvg.short, gene, "Illumina",
+                                         fill = "#FCB344",
+                                         col = "#FCB344")
           trackList <- append(dTrack_short, trackList)
         }
         # add alignment track
@@ -148,7 +157,7 @@ plot_cov_genes2 <- function(gene, cov_data = c("long", "short"), anno_col = "tra
                              range = hightlight_range %>% filter(name == ref_gene))
         plotTracks(list(ht, axisTrack),
                    groupAnnotation = "group",
-                   main = paste0(ref_gene, " (", gene, ")")
+                   main = ref_gene
                    )
       }
     } else {
@@ -492,7 +501,7 @@ dev.off()
 
 # test----
 plot_cov_genes2("TMEM80_1", anno_col = "transcript_id_status")
-plot_cov_genes2("TMEM80_1")
+plot_cov_genes2("TMEM80_1", cov_data = "short")
 plot_cov_genes2("UBL5_1")
 plot_cov_genes2("SPCS2_1")
 plot_cov_genes2("KRTCAP2_1")
