@@ -52,6 +52,7 @@ Counts were loaded using `catchSalmon` function from *edgeR*.
 
 ```{r catchSalmon}
 counts <- catchSalmon(path = paste0("../salmon/short_bambu/", list.files("../salmon/short_bambu/")))
+summary(counts$annotation$Overdispersion)
 ```
 
 ## Differential expression analysis
